@@ -1,14 +1,13 @@
 #include "../Include/SwapChain.h"
 #include "../Include/Device.h"
-#include "../Include/ImageView.h"
 #include "../Include/RenderPass.h"
-#include <bits/stdint-uintn.h>
-#include <stddef.h>
-#include <vulkan/vulkan.hpp>
 #include <algorithm>
+#include <bits/stdint-uintn.h>
 #include <iostream>
 #include <limits>
+#include <stddef.h>
 #include <vector>
+#include <vulkan/vulkan.hpp>
 
 vk::SurfaceFormatKHR chooseSwapSurfaceFormat(
     const std::vector<vk::SurfaceFormatKHR>& availableFormats);
@@ -20,6 +19,22 @@ vk::PresentModeKHR chooseSwapPresentMode(
     const std::vector<vk::PresentModeKHR> availablePresentModes);
 
 uint32_t chooseSwapImageCount(const vk::SurfaceCapabilitiesKHR& capabilities);
+
+static vk::ImageView createImageView(vk::Device device, vk::Image image, vk::Format format)
+{
+    vk::ImageViewCreateInfo viewInfo;
+    viewInfo.image = image;
+    viewInfo.viewType = vk::ImageViewType::e2D;
+    viewInfo.format = format;
+    viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+
+    vk::ImageView imageView = device.createImageView(viewInfo, nullptr);
+    return imageView;
+}
 
 SwapChain::SwapChain(Device& device, const vk::Extent2D& extent) : mDevice(device)
 {
@@ -63,8 +78,7 @@ SwapChain::SwapChain(Device& device, const vk::Extent2D& extent) : mDevice(devic
     std::cout << "swapchain images size " << images.size() << "\n";
 
     for (size_t i = 0; i < images.size(); i++) {
-        mImageViews.push_back(
-            ImageView(mDevice, images[i], mFormat, vk::ImageAspectFlagBits::eColor));
+        mImageViews.push_back(createImageView(mDevice, images[i], mFormat));
     }
 }
 

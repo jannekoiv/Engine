@@ -1,10 +1,8 @@
 #pragma once
 #include "../Include/Base.h"
 #include "../Include/Buffer.h"
-#include "../Include/CommandPool.h"
 #include "../Include/Device.h"
 #include "../Include/Image.h"
-#include "../Include/ImageView.h"
 #include "../Include/RenderPass.h"
 #include "../Include/Semaphore.h"
 #include "../Include/SwapChain.h"
@@ -91,6 +89,5 @@ private:
     SwapChain mSwapChain;
     RenderPass mRenderPass;
     Image mDepthImage;
-    ImageView mDepthImageView;
     std::vector<vk::Framebuffer> mFrameBuffers;
 };

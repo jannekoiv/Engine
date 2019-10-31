@@ -27,7 +27,7 @@ public:
         return mExtent;
     }
 
-    std::vector<ImageView>& imageViews()
+    std::vector<vk::ImageView>& imageViews()
     {
         return mImageViews;
     }
@@ -35,7 +35,7 @@ public:
 private:
     Device& mDevice;
     vk::SwapchainKHR mSwapChain;
-    std::vector<ImageView> mImageViews;
+    std::vector<vk::ImageView> mImageViews;
     vk::Format mFormat;
     vk::Extent2D mExtent;
 };

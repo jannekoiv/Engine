@@ -2,7 +2,6 @@
 
 #include "../Include/Buffer.h"
 #include "../Include/Image.h"
-#include "../Include/ImageView.h"
 #include "../Include/Sampler.h"
 #include "../Include/Base.h"
 #include "../Include/DescriptorPool.h"
@@ -55,7 +54,6 @@ public:
     Engine& mEngine;
     glm::mat4 mWorldMatrix;
     Image mTexture;
-    ImageView mTextureView;
     Buffer mVertexBuffer;
     Buffer mIndexBuffer;
     int mIndexCount;

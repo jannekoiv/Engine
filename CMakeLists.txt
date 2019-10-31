@@ -35,13 +35,11 @@ target_sources(
 	PRIVATE
 	Src/Base.cpp
 	Src/Buffer.cpp
-	Src/CommandPool.cpp
 	Src/DescriptorPool.cpp
 	Src/DescriptorSetLayout.cpp
 	Src/Device.cpp
 	Src/Engine.cpp
 	Src/Image.cpp
-	Src/ImageView.cpp
 	Src/Model.cpp
 	Src/Pipeline.cpp
 	Src/Renderer.cpp

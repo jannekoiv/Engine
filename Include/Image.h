@@ -36,10 +36,21 @@ public:
         return mFormat;
     }
 
+    vk::DeviceMemory memory() const
+    {
+        return mMemory;
+    }
+
+    vk::ImageView view() const
+    {
+        return mView;
+    }
+
 private:
     Device& mDevice;
-    vk::Image mImage;
-    vk::DeviceMemory mMemory;
     vk::Extent3D mExtent;
     vk::Format mFormat;
+    vk::Image mImage;
+    vk::DeviceMemory mMemory;
+    vk::ImageView mView;
 };

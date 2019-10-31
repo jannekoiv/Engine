@@ -7,7 +7,7 @@
 #include <iostream>
 
 std::vector<vk::Framebuffer> createFrameBuffers(
-    Device& device, SwapChain& swapChain, ImageView& depthImageView, RenderPass& renderPass)
+    Device& device, SwapChain& swapChain, vk::ImageView depthImageView, RenderPass& renderPass)
 {
     std::vector<vk::Framebuffer> frameBuffers(swapChain.imageViews().size());
 
@@ -43,8 +43,7 @@ Engine::Engine(const InitInfo& initInfo, GLFWwindow* window)
           vk::ImageTiling::eOptimal,
           vk::ImageUsageFlagBits::eDepthStencilAttachment,
           vk::MemoryPropertyFlagBits::eDeviceLocal),
-      mDepthImageView(mDepthImage, vk::ImageAspectFlagBits::eDepth),
-      mFrameBuffers(createFrameBuffers(mDevice, mSwapChain, mDepthImageView, mRenderPass))
+      mFrameBuffers(createFrameBuffers(mDevice, mSwapChain, mDepthImage.view(), mRenderPass))
 {
 }
 

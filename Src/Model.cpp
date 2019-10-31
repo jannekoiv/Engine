@@ -363,7 +363,6 @@ Model::Model(
     : mEngine(engine),
       mWorldMatrix(worldMatrix),
       mTexture(texture),
-      mTextureView(mTexture, vk::ImageAspectFlagBits::eColor),
       mVertexBuffer(createVertexBuffer(mEngine.device(), vertices)),
       mIndexBuffer(createIndexBuffer(mEngine.device(), indices)),
       mIndexCount(indices.size()),
@@ -371,7 +370,7 @@ Model::Model(
       mTextureSampler(mEngine.device(), vk::SamplerAddressMode::eClampToEdge),
       mDescriptorPool(mEngine),
       mDescriptorSetLayout(mEngine),
-      mDescriptorSet(createDescriptorSet(mUniformBuffer, mTextureView, mTextureSampler)),
+      mDescriptorSet(createDescriptorSet(mUniformBuffer, mTexture.view(), mTextureSampler)),
       mPipeline(
           mEngine.device(),
           Vertex::getBindingDescription(),
