@@ -1,0 +1,43 @@
+#pragma once
+
+#include "../Include/Base.h"
+
+class Device;
+class Image;
+
+class Buffer {
+public:
+    Buffer(
+        Device& device,
+        vk::DeviceSize size,
+        vk::BufferUsageFlags usage,
+        vk::MemoryPropertyFlags memoryProperties);
+
+    ~Buffer();
+
+    operator vk::Buffer() const
+    {
+        return mBuffer;
+    }
+
+    vk::DeviceSize size()
+    {
+        return mSize;
+    }
+
+    const vk::DeviceMemory& memory() const
+    {
+        return mMemory;
+    }
+
+    void copy(Buffer& dstBuffer, vk::DeviceSize size);
+    void copy(Buffer& dstBuffer);
+    void copyToImage(Image& dstImage, vk::Offset3D offset, vk::Extent3D extent);
+    void copyToImage(Image& dstImage, vk::Offset3D offset = vk::Offset3D(0, 0, 0));
+
+private:
+    Device& mDevice;
+    vk::DeviceSize mSize;
+    vk::Buffer mBuffer;
+    vk::DeviceMemory mMemory;
+};
