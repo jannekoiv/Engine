@@ -113,16 +113,12 @@ int main()
     std::vector<vk::Framebuffer> frameBuffers =
         createFramebuffers(device, swapChain, depthImage.view(), renderPass);
 
-    DescriptorSetLayout descriptorSetLayout{device};
-    DescriptorPool descriptorPool{device};
-
     DescriptorManager descriptorManager{device};
 
     std::vector<Model*> models;
 
     for (int i = 0; i < 4; i++) {
-        Model* model = new Model(
-            device, descriptorManager, swapChain, renderPass, "d:/apina.dat");
+        Model* model = new Model(device, descriptorManager, swapChain, renderPass, "d:/apina.dat");
         models.push_back(model);
     }
 

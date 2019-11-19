@@ -2,8 +2,6 @@
 
 #include "../Include/Base.h"
 #include "../Include/Buffer.h"
-#include "../Include/DescriptorPool.h"
-#include "../Include/DescriptorSetLayout.h"
 #include "../Include/DescriptorManager.h"
 #include "../Include/Image.h"
 #include "../Include/Pipeline.h"
