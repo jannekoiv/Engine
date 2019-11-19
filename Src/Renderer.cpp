@@ -1,5 +1,9 @@
 
 #include "../Include/Renderer.h"
+#include "../Include/Device.h"
+#include "../Include/Model.h"
+#include "../Include/RenderPass.h"
+#include "../Include/SwapChain.h"
 #include <fstream>
 #include <iostream>
 
@@ -25,59 +29,20 @@ void alignedFree(void* data)
 #endif
 }
 
-std::vector<vk::CommandBuffer> createCommandBuffers(Engine& engine, std::vector<Model*> models);
-UboWorldView createUniformObject(Engine& engine, std::vector<Model*> models);
-Buffer createUniformBuffer(Engine& engine, std::vector<Model*> models);
+//UboWorldView createUniformObject(Engine& engine, std::vector<Model*> models);
+//Buffer createUniformBuffer(Engine& engine, std::vector<Model*> models);
 
-Renderer::Renderer(Engine& engine, std::vector<Model*> models)
-    : mEngine(engine),
-      mCommandBuffers(createCommandBuffers(engine, models)),
-      mUboWorldView(createUniformObject(mEngine, models)),
-      mUniformBuffer(createUniformBuffer(mEngine, models)),
-      mImageAvailableSemaphore(static_cast<vk::Device>(mEngine.device()).createSemaphore({})),
-      mRenderFinishedSemaphore(static_cast<vk::Device>(mEngine.device()).createSemaphore({}))
-{
-}
-
-int calcUboAlignment(Engine& engine)
-{
-    auto minUboAlignment =
-        engine.device().physicalDevice().getProperties().limits.minUniformBufferOffsetAlignment;
-    auto uboAlignment = sizeof(glm::mat4);
-    if (minUboAlignment > 0) {
-        uboAlignment = (uboAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
-    }
-    return uboAlignment;
-}
-
-UboWorldView createUniformObject(Engine& engine, std::vector<Model*> models)
-{
-    UboWorldView ubo;
-    auto uboAlignment = calcUboAlignment(engine);
-    ubo.worldView = (glm::mat4*)alignedAlloc(uboAlignment * models.size(), uboAlignment);
-    return ubo;
-}
-
-Buffer createUniformBuffer(Engine& engine, std::vector<Model*> models)
-{
-    auto bufferSize = calcUboAlignment(engine) * models.size();
-
-    Buffer buffer(
-        engine.device(),
-        bufferSize,
-        vk::BufferUsageFlagBits::eUniformBuffer,
-        vk::MemoryPropertyFlagBits::eHostCoherent);
-
-    return buffer;
-}
-
-std::vector<vk::CommandBuffer> createCommandBuffers(Engine& engine, std::vector<Model*> models)
+std::vector<vk::CommandBuffer> createCommandBuffers(
+    Device& device,
+    std::vector<Model*> models,
+    std::vector<vk::Framebuffer>& frameBuffers,
+    RenderPass& renderPass,
+    SwapChain& swapChain)
 {
     vk::CommandBufferAllocateInfo commandBufferInfo(
-        engine.device().commandPool(), vk::CommandBufferLevel::ePrimary, engine.frameBufferCount());
+        device.commandPool(), vk::CommandBufferLevel::ePrimary, frameBuffers.size());
 
-    auto commandBuffers =
-        static_cast<vk::Device>(engine.device()).allocateCommandBuffers(commandBufferInfo);
+    auto commandBuffers = static_cast<vk::Device>(device).allocateCommandBuffers(commandBufferInfo);
 
     size_t frameBufferIndex = 0;
     for (vk::CommandBuffer commandBuffer : commandBuffers) {
@@ -87,10 +52,10 @@ std::vector<vk::CommandBuffer> createCommandBuffers(Engine& engine, std::vector<
         commandBuffer.begin(beginInfo);
 
         vk::RenderPassBeginInfo renderPassInfo;
-        renderPassInfo.renderPass = engine.renderPass();
-        renderPassInfo.framebuffer = engine.frameBuffer(frameBufferIndex++);
+        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.framebuffer = frameBuffers[frameBufferIndex++];
         renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
-        renderPassInfo.renderArea.extent = engine.swapChain().extent();
+        renderPassInfo.renderArea.extent = swapChain.extent();
 
         std::array<vk::ClearValue, 2> clearValues;
         clearValues[0].color = std::array<float, 4>{0.5f, 0.4f, 0.5f, 1.0f};
@@ -126,19 +91,64 @@ std::vector<vk::CommandBuffer> createCommandBuffers(Engine& engine, std::vector<
     return commandBuffers;
 }
 
-void Renderer::drawFrame()
+Renderer::Renderer(
+    Device& device,
+    std::vector<Model*> models,
+    std::vector<vk::Framebuffer>& frameBuffers,
+    RenderPass& renderPass,
+    SwapChain& swapChain)
+    : mDevice(device),
+      mCommandBuffers(createCommandBuffers(device, models, frameBuffers, renderPass, swapChain)),
+      //      mUboWorldView(createUniformObject(mEngine, models)),
+      //      mUniformBuffer(createUniformBuffer(mEngine, models)),
+      mImageAvailableSemaphore(static_cast<vk::Device>(mDevice).createSemaphore({})),
+      mRenderFinishedSemaphore(static_cast<vk::Device>(mDevice).createSemaphore({}))
+{
+}
+
+//int calcUboAlignment(Engine& engine)
+//{
+//    auto minUboAlignment =
+//        engine.device().physicalDevice().getProperties().limits.minUniformBufferOffsetAlignment;
+//    auto uboAlignment = sizeof(glm::mat4);
+//    if (minUboAlignment > 0) {
+//        uboAlignment = (uboAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
+//    }
+//    return uboAlignment;
+//}
+//
+//UboWorldView createUniformObject(Engine& engine, std::vector<Model*> models)
+//{
+//    UboWorldView ubo;
+//    auto uboAlignment = calcUboAlignment(engine);
+//    ubo.worldView = (glm::mat4*)alignedAlloc(uboAlignment * models.size(), uboAlignment);
+//    return ubo;
+//}
+//
+//Buffer createUniformBuffer(Engine& engine, std::vector<Model*> models)
+//{
+//    auto bufferSize = calcUboAlignment(engine) * models.size();
+//
+//    Buffer buffer(
+//        engine.device(),
+//        bufferSize,
+//        vk::BufferUsageFlagBits::eUniformBuffer,
+//        vk::MemoryPropertyFlagBits::eHostCoherent);
+//
+//    return buffer;
+//}
+
+void Renderer::drawFrame(SwapChain& swapChain)
 {
     uint32_t imageIndex = 0;
-    static_cast<vk::Device>(mEngine.device())
-        .acquireNextImageKHR(
-            mEngine.swapChain(),
-            std::numeric_limits<uint64_t>::max(),
-            mImageAvailableSemaphore,
-            nullptr,
-            &imageIndex);
+    static_cast<vk::Device>(mDevice).acquireNextImageKHR(
+        swapChain,
+        std::numeric_limits<uint64_t>::max(),
+        mImageAvailableSemaphore,
+        nullptr,
+        &imageIndex);
 
     vk::SubmitInfo submitInfo;
-
     vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = &mImageAvailableSemaphore;
@@ -150,19 +160,18 @@ void Renderer::drawFrame()
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = &mRenderFinishedSemaphore;
 
-    mEngine.device().graphicsQueue().submit(submitInfo, nullptr);
+    mDevice.graphicsQueue().submit(submitInfo, nullptr);
 
     vk::PresentInfoKHR presentInfo;
-
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = &mRenderFinishedSemaphore;
 
-    vk::SwapchainKHR swapChains[] = {mEngine.swapChain()};
+    vk::SwapchainKHR swapChains[] = {swapChain};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr;
 
-    mEngine.device().presentQueue().presentKHR(presentInfo);
-    static_cast<vk::Device>(mEngine.device()).waitIdle();
+    mDevice.presentQueue().presentKHR(presentInfo);
+    static_cast<vk::Device>(mDevice).waitIdle();
 }

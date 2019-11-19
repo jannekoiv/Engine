@@ -1,25 +1,79 @@
 #pragma once
 
-#include "../Include/Buffer.h"
-#include "../Include/Image.h"
-#include "../Include/Sampler.h"
 #include "../Include/Base.h"
+#include "../Include/Buffer.h"
 #include "../Include/DescriptorPool.h"
 #include "../Include/DescriptorSetLayout.h"
+#include "../Include/DescriptorManager.h"
+#include "../Include/Image.h"
 #include "../Include/Pipeline.h"
-#include "../Include/Engine.h"
+#include "../Include/RenderPass.h"
+#include "../Include/Sampler.h"
+#include "../Include/SwapChain.h"
+
+class Device;
 
 struct UniformBufferObject {
     glm::highp_mat4 worldView;
     glm::highp_mat4 proj;
 };
 
+struct Vertex {
+    static vk::VertexInputBindingDescription getBindingDescription()
+    {
+        vk::VertexInputBindingDescription bindingDescription = {};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(Vertex);
+        bindingDescription.inputRate = vk::VertexInputRate::eVertex;
+
+        return bindingDescription;
+    }
+
+    static std::vector<vk::VertexInputAttributeDescription> getAttributeDescriptions()
+    {
+        std::vector<vk::VertexInputAttributeDescription> attributeDescriptions(3);
+
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = vk::Format::eR32G32B32A32Sfloat;
+        attributeDescriptions[0].offset = offsetof(Vertex, position);
+
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = vk::Format::eR32G32B32A32Sfloat;
+        attributeDescriptions[1].offset = offsetof(Vertex, normal);
+
+        attributeDescriptions[2].binding = 0;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = vk::Format::eR32G32Sfloat;
+        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
+        return attributeDescriptions;
+    }
+
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 texCoord;
+};
+
 class Model {
 public:
-    Model(Engine& engine, std::string filename);
+    Model(
+        Device& device,
+        //DescriptorSetLayout& descriptorSetLayout,
+        //DescriptorPool& descriptorPool,
+        DescriptorManager& descriptorManager,
+        SwapChain& swapChain,
+        RenderPass& renderPass,
+        std::string filename);
 
     Model(
-        Engine& engine,
+        Device& device,
+        //DescriptorSetLayout& descriptorSetLayout,
+        //DescriptorPool& descriptorPool,
+        DescriptorManager& descriptorManager,
+        SwapChain& swapChain,
+        RenderPass& renderPass,
         glm::mat4 worldMatrix,
         Image texture,
         std::vector<Vertex> vertices,
@@ -51,7 +105,7 @@ public:
         vk::Buffer uniformBuffer, vk::ImageView textureView, vk::Sampler textureSampler);
 
     //private:
-    Engine& mEngine;
+    Device& mDevice;
     glm::mat4 mWorldMatrix;
     Image mTexture;
     Buffer mVertexBuffer;
@@ -60,8 +114,9 @@ public:
     Buffer mUniformBuffer;
     Sampler mTextureSampler;
     UniformBufferObject mUniformBufferObject;
-    DescriptorPool mDescriptorPool;
-    DescriptorSetLayout mDescriptorSetLayout;
+    //DescriptorSetLayout mDescriptorSetLayout;
+    //DescriptorPool mDescriptorPool;
+    DescriptorManager& mDescriptorManager;
     vk::DescriptorSet mDescriptorSet;
     Pipeline mPipeline;
 };

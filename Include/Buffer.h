@@ -7,6 +7,13 @@ class Image;
 
 class Buffer {
 public:
+
+	Buffer(const Buffer&) = delete;
+    Buffer(Buffer&& buffer);
+
+	Buffer& operator=(const Buffer&) = delete;
+    Buffer& operator=(Buffer&& buffer) = delete;
+
     Buffer(
         Device& device,
         vk::DeviceSize size,

@@ -2,6 +2,7 @@
 
 #define VULKAN_HPP_NO_SMART_HANDLE
 
+#include <Windows.h>
 #include <vulkan/vulkan.hpp>
 //#define GLM_FORCE_ALIGNED
 //#define GLM_FORCE_CTOR_INIT

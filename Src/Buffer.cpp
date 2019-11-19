@@ -5,6 +5,13 @@
 #include <iostream>
 #include <vulkan/vulkan.hpp>
 
+Buffer::Buffer(Buffer&& buffer)
+    : mDevice(buffer.mDevice), mSize(buffer.mSize), mBuffer(buffer.mBuffer), mMemory(buffer.mMemory)
+{
+    buffer.mBuffer = nullptr;
+    buffer.mMemory = nullptr;
+}
+
 Buffer::Buffer(
     Device& device,
     vk::DeviceSize size,

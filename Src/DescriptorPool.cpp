@@ -1,29 +1,29 @@
 #include "../Include/DescriptorPool.h"
-#include "../Include/Engine.h"
-#include <vulkan/vulkan.hpp>
+#include "../Include/Device.h"
 #include <iostream>
 #include <vector>
+#include <vulkan/vulkan.hpp>
 
-DescriptorPool::DescriptorPool(Engine& engine) : mEngine(engine)
+DescriptorPool::DescriptorPool(Device& device) : mDevice(device)
 {
-    std::array<vk::DescriptorPoolSize, 3> poolSizes;
+    std::array<vk::DescriptorPoolSize, 2> poolSizes;
     poolSizes[0].type = vk::DescriptorType::eUniformBuffer;
-    poolSizes[0].descriptorCount = 300;
+    poolSizes[0].descriptorCount = 10;
     poolSizes[1].type = vk::DescriptorType::eCombinedImageSampler;
-    poolSizes[1].descriptorCount = 2000;
+    poolSizes[1].descriptorCount = 10;
 
     vk::DescriptorPoolCreateInfo poolInfo;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    poolInfo.maxSets = 3000000;
+    poolInfo.maxSets = 10;
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
 
-    mDescriptorPool = static_cast<vk::Device>(mEngine.device()).createDescriptorPool(poolInfo, nullptr);
+    mDescriptorPool = static_cast<vk::Device>(mDevice).createDescriptorPool(poolInfo, nullptr);
 }
 
 DescriptorPool::~DescriptorPool()
 {
-    static_cast<vk::Device>(mEngine.device()).destroyDescriptorPool(mDescriptorPool);
+    //static_cast<vk::Device>(mDevice).destroyDescriptorPool(mDescriptorPool);
 }
 
 DescriptorPool::operator vk::DescriptorPool() const

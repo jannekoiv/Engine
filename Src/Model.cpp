@@ -1,6 +1,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 //#include "../Include/stb_image.h"
 #include "../Include/Model.h"
+#include "../Include/Device.h"
 #include "stb_image.h"
 #include <fstream>
 #include <iostream>
@@ -198,12 +199,13 @@ Image createTextureImage(Device& device, std::string filename)
     int width = 0;
     int height = 0;
     int channelCount = 0;
-    stbi_uc* pixels = stbi_load(filename.data(), &width, &height, &channelCount, STBI_rgb_alpha);
 
-    vk::DeviceSize imageSize = width * height * bytesPerPixel;
+    stbi_uc* pixels = stbi_load(filename.data(), &width, &height, &channelCount, STBI_rgb_alpha);
     if (!pixels) {
         throw std::runtime_error("Failed to load texture image!");
     }
+
+    vk::DeviceSize imageSize = width * height * bytesPerPixel;
 
     Buffer stagingBuffer(
         device,
@@ -245,7 +247,14 @@ Image createTextureImage(Device& device, std::string filename)
     return image;
 }
 
-Model createModelFromFile(Engine& engine, std::string filename)
+Model createModelFromFile(
+    Device& device,
+    //DescriptorSetLayout& descriptorSetLayout,
+    //DescriptorPool& descriptorPool,
+    DescriptorManager& descriptorManager,
+    SwapChain& swapChain,
+    RenderPass& renderPass,
+    std::string filename)
 {
     std::ifstream file(filename, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
@@ -261,7 +270,8 @@ Model createModelFromFile(Engine& engine, std::string filename)
     file.read(reinterpret_cast<char*>(&worldMatrix), sizeof(glm::mat4));
 
     std::string material = readString(file);
-    Image image = createTextureImage(engine.device(), material);
+    //Image image = createTextureImage(device, material);
+    Image image = createTextureImage(device, "d:/texture3.jpg");
 
     uint32_t vertexCount = readInt(file);
     std::vector<Vertex> vertices(vertexCount);
@@ -283,18 +293,25 @@ Model createModelFromFile(Engine& engine, std::string filename)
     }
 
     file.close();
-    return Model(engine, worldMatrix, image, vertices, indices);
+
+    return Model(
+        device,
+        //descriptorSetLayout,
+        //descriptorPool,
+        descriptorManager,
+        swapChain,
+        renderPass,
+        worldMatrix,
+        image,
+        vertices,
+        indices);
 }
 
-Model::Model(Engine& engine, std::string filename) : Model(createModelFromFile(engine, filename))
-{
-}
-
-Buffer createUniformBuffer(Engine& engine)
+Buffer createUniformBuffer(Device& device)
 {
     std::cout << "UB created\n";
     return Buffer(
-        engine.device(),
+        device,
         sizeof(UniformBufferObject),
         vk::BufferUsageFlagBits::eUniformBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -355,67 +372,78 @@ Buffer createIndexBuffer(Device& device, std::vector<uint32_t>& indices)
 }
 
 Model::Model(
-    Engine& engine,
+    Device& device,
+    //DescriptorSetLayout& descriptorSetLayout,
+    //DescriptorPool& descriptorPool,
+    DescriptorManager& descriptorManager,
+    SwapChain& swapChain,
+    RenderPass& renderPass,
+    std::string filename)
+    : Model(createModelFromFile(device, descriptorManager, swapChain, renderPass, filename))
+//device, descriptorSetLayout, descriptorPool, swapChain, renderPass, filename))
+{
+}
+
+Model::Model(
+    Device& device,
+    //DescriptorSetLayout& descriptorSetLayout,
+    //DescriptorPool& descriptorPool,
+    DescriptorManager& descriptorManager,
+    SwapChain& swapChain,
+    RenderPass& renderPass,
     glm::mat4 worldMatrix,
     Image texture,
     std::vector<Vertex> vertices,
     std::vector<uint32_t> indices)
-    : mEngine(engine),
+    : mDevice(device),
       mWorldMatrix(worldMatrix),
       mTexture(texture),
-      mVertexBuffer(createVertexBuffer(mEngine.device(), vertices)),
-      mIndexBuffer(createIndexBuffer(mEngine.device(), indices)),
+      mVertexBuffer(createVertexBuffer(mDevice, vertices)),
+      mIndexBuffer(createIndexBuffer(mDevice, indices)),
       mIndexCount(indices.size()),
-      mUniformBuffer(createUniformBuffer(mEngine)),
-      mTextureSampler(mEngine.device(), vk::SamplerAddressMode::eClampToEdge),
-      mDescriptorPool(mEngine),
-      mDescriptorSetLayout(mEngine),
+      mUniformBuffer(createUniformBuffer(mDevice)),
+      mTextureSampler(mDevice, vk::SamplerAddressMode::eClampToEdge),
+      //mDescriptorSetLayout(descriptorSetLayout),
+      //mDescriptorPool(descriptorPool),
+      mDescriptorManager(descriptorManager),
       mDescriptorSet(createDescriptorSet(mUniformBuffer, mTexture.view(), mTextureSampler)),
       mPipeline(
-          mEngine.device(),
+          mDevice,
           Vertex::getBindingDescription(),
           Vertex::getAttributeDescriptions(),
-          "/home/jak/Shaders/vert.spv",
-          "/home/jak/Shaders/frag.spv",
-          mEngine.swapChain().extent(),
-          mDescriptorSetLayout,
-          mEngine.renderPass())
+          "d:/Shaders/vert.spv",
+          "d:/Shaders/frag.spv",
+          swapChain.extent(),
+          mDescriptorManager.lastLayout(),
+          renderPass)
 {
 }
 
 void Model::updateUniformBuffer()
 {
-    void* data = static_cast<vk::Device>(mEngine.device())
-                     .mapMemory(mUniformBuffer.memory(), 0, sizeof(mUniformBufferObject), {});
+    void* data = static_cast<vk::Device>(mDevice).mapMemory(
+        mUniformBuffer.memory(), 0, sizeof(mUniformBufferObject), {});
     memcpy(data, &mUniformBufferObject, sizeof(UniformBufferObject));
-    static_cast<vk::Device>(mEngine.device()).unmapMemory(mUniformBuffer.memory());
+    static_cast<vk::Device>(mDevice).unmapMemory(mUniformBuffer.memory());
 }
 
 vk::DescriptorSet Model::createDescriptorSet(
     vk::Buffer uniformBuffer, vk::ImageView textureView, vk::Sampler textureSampler)
 {
-    std::vector<vk::DescriptorSetLayout> layouts;
+    std::vector<vk::DescriptorSetLayoutBinding> bindings = {
+        {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
+        {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
 
-    for (int i = 0; i < 1; i++) {
-        layouts.push_back(mDescriptorSetLayout);
-    }
+    vk::DescriptorSet descriptorSet = mDescriptorManager.createDescriptorSet(bindings);
 
-    vk::DescriptorSetAllocateInfo allocInfo;
-    allocInfo.descriptorPool = mDescriptorPool;
-    allocInfo.descriptorSetCount = layouts.size();
-    allocInfo.pSetLayouts = layouts.data();
-
-    vk::DescriptorSet descriptorSet =
-        static_cast<vk::Device>(mEngine.device()).allocateDescriptorSets(allocInfo).front();
-
-    std::array<vk::DescriptorBufferInfo, 15> bufferInfos;
+    std::array<vk::DescriptorBufferInfo, 1> bufferInfos;
     for (size_t i = 0; i < bufferInfos.size(); i++) {
         bufferInfos[i].buffer = uniformBuffer;
         bufferInfos[i].offset = 0;
         bufferInfos[i].range = sizeof(UniformBufferObject);
     }
 
-    std::array<vk::DescriptorImageInfo, 100> imageInfos;
+    std::array<vk::DescriptorImageInfo, 1> imageInfos;
     for (size_t i = 0; i < imageInfos.size(); i++) {
         imageInfos[i].imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
         imageInfos[i].imageView = textureView;
@@ -438,7 +466,7 @@ vk::DescriptorSet Model::createDescriptorSet(
     descriptorWrites[1].descriptorCount = imageInfos.size();
     descriptorWrites[1].pImageInfo = imageInfos.data();
 
-    static_cast<vk::Device>(mEngine.device()).updateDescriptorSets(descriptorWrites, nullptr);
+    static_cast<vk::Device>(mDevice).updateDescriptorSets(descriptorWrites, nullptr);
 
     return descriptorSet;
 }

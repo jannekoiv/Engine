@@ -1,11 +1,15 @@
-#include <iostream>
-#include "GLFW/glfw3.h"
 #include "../Include/Engine.h"
-#include "../Include/Renderer.h"
 #include "../Include/Model.h"
+#include "../Include/Renderer.h"
+#include "GLFW/glfw3.h"
 #include <bitset>
-#include <functional>
 #include <fstream>
+#include <functional>
+#include <iostream>
+
+#include <set>
+
+#include <optional>
 
 bool running = true;
 
@@ -33,7 +37,8 @@ GLFWwindow* initWindow(const int width, const int height)
 
 float rot = 0.0f;
 
-void mainLoop(GLFWwindow* window, Renderer& renderer, std::vector<Model*> models)
+void mainLoop(
+    GLFWwindow* window, Renderer& renderer, std::vector<Model*> models, SwapChain& swapChain)
 {
     glm::vec3 positions[] = {
         {-2.0f, -2.0f, 0.0f}, {-2.0f, 2.0f, 0.0f}, {2.0f, 2.0f, 0.0f}, {2.0f, -2.0f, 0.0f}};
@@ -60,27 +65,74 @@ void mainLoop(GLFWwindow* window, Renderer& renderer, std::vector<Model*> models
             model->updateUniformBuffer();
         }
         rot += 0.005f;
-        renderer.drawFrame();
+        renderer.drawFrame(swapChain);
     }
+}
+
+static std::vector<vk::Framebuffer> createFramebuffers(
+    Device& device, SwapChain& swapChain, vk::ImageView depthImageView, RenderPass& renderPass)
+{
+    std::vector<vk::Framebuffer> frameBuffers(swapChain.imageViews().size());
+
+    for (size_t i = 0; i < swapChain.imageViews().size(); i++) {
+        std::vector<vk::ImageView> attachments = {swapChain.imageViews()[i], depthImageView};
+
+        vk::FramebufferCreateInfo framebufferInfo;
+        framebufferInfo.renderPass = renderPass;
+        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        framebufferInfo.pAttachments = attachments.data();
+        framebufferInfo.width = swapChain.extent().width;
+        framebufferInfo.height = swapChain.extent().height;
+        framebufferInfo.layers = 1;
+
+        frameBuffers[i] =
+            static_cast<vk::Device>(device).createFramebuffer(framebufferInfo, nullptr);
+    }
+    return frameBuffers;
 }
 
 int main()
 {
-    InitInfo initInfo;
+    InitInfo initInfo{};
     GLFWwindow* window = initWindow(initInfo.width, initInfo.height);
 
-    Engine engine(initInfo, window);
+    Device device{window, true, initInfo.validationLayers, initInfo.deviceExtensions};
+
+    SwapChain swapChain{device, vk::Extent2D{initInfo.width, initInfo.height}};
+
+    RenderPass renderPass{device, swapChain.format()};
+
+    Image depthImage{
+        device,
+        vk::Extent3D(swapChain.extent()),
+        renderPass.depthAttachmentFormat(),
+        vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eDepthStencilAttachment,
+        vk::MemoryPropertyFlagBits::eDeviceLocal};
+
+    std::vector<vk::Framebuffer> frameBuffers =
+        createFramebuffers(device, swapChain, depthImage.view(), renderPass);
+
+    DescriptorSetLayout descriptorSetLayout{device};
+    DescriptorPool descriptorPool{device};
+
+    DescriptorManager descriptorManager{device};
 
     std::vector<Model*> models;
 
     for (int i = 0; i < 4; i++) {
-        Model* model = new Model(engine, "/home/jak/apina.dat");
+        Model* model = new Model(
+            device, descriptorManager, swapChain, renderPass, "d:/apina.dat");
         models.push_back(model);
     }
 
-    Renderer renderer(engine, models);
+    std::cout << "Models loaded\n";
 
-    mainLoop(window, renderer, models);
+    Renderer renderer(device, models, frameBuffers, renderPass, swapChain);
+
+    std::cout << "Renderer ok\n";
+
+    mainLoop(window, renderer, models, swapChain);
 
     for (Model* model : models) {
         delete model;

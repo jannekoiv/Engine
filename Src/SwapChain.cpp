@@ -2,7 +2,6 @@
 #include "../Include/Device.h"
 #include "../Include/RenderPass.h"
 #include <algorithm>
-#include <bits/stdint-uintn.h>
 #include <iostream>
 #include <limits>
 #include <stddef.h>
@@ -86,7 +85,10 @@ vk::SurfaceFormatKHR chooseSwapSurfaceFormat(
     const std::vector<vk::SurfaceFormatKHR>& availableFormats)
 {
     if (availableFormats.size() == 1 && availableFormats[0].format == vk::Format::eUndefined) {
-        return {vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear};
+		vk::SurfaceFormatKHR format;
+		format.format = vk::Format::eB8G8R8A8Unorm;
+		format.colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear;
+		return format;
     }
     for (const auto& availableFormat : availableFormats) {
         if (availableFormat.format == vk::Format::eB8G8R8A8Unorm &&

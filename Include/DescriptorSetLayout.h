@@ -3,11 +3,11 @@
 
 #include "../Include/Base.h"
 
-class Engine;
+class Device;
 
 class DescriptorSetLayout {
 public:
-    DescriptorSetLayout(Engine& engine);
+    DescriptorSetLayout(Device& device);
     ~DescriptorSetLayout();
 
     operator vk::DescriptorSetLayout() const
@@ -16,6 +16,6 @@ public:
     }
 
 private:
-    Engine& mEngine;
+    Device& mDevice;
     vk::DescriptorSetLayout mLayout;
 };

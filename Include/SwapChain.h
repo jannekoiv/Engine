@@ -4,7 +4,6 @@
 #include "../Include/Base.h"
 
 class Device;
-class InitInfo;
 class ImageView;
 class RenderPass;
 

@@ -1,9 +1,9 @@
 
 #include "../Include/RenderPass.h"
-#include "../Include/Device.h"
 #include "../Include/Base.h"
-#include <vulkan/vulkan.hpp>
+#include "../Include/Device.h"
 #include <iostream>
+#include <vulkan/vulkan.hpp>
 
 vk::Format findSupportedFormat(
     const Device& device,
@@ -48,11 +48,7 @@ RenderPass::RenderPass(Device& device, vk::Format swapChainFormat)
     colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
     colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
 
-    vk::AttachmentReference colorAttachmentRef;
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
-
-    std::vector<vk::AttachmentReference> colorAttachments = {colorAttachmentRef};
+    vk::AttachmentReference colorAttachmentRef{0, vk::ImageLayout::eColorAttachmentOptimal};
 
     vk::AttachmentDescription depthAttachment;
     depthAttachment.format = mDepthAttachmentFormat;
@@ -64,14 +60,12 @@ RenderPass::RenderPass(Device& device, vk::Format swapChainFormat)
     depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
     depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
-    vk::AttachmentReference depthAttachmentRef;
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+    vk::AttachmentReference depthAttachmentRef{1, vk::ImageLayout::eDepthStencilAttachmentOptimal};
 
     vk::SubpassDescription subpass;
     subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
-    subpass.colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size());
-    subpass.pColorAttachments = colorAttachments.data();
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     vk::SubpassDependency dependency;

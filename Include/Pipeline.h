@@ -16,7 +16,7 @@ public:
         std::string vertexShaderFilename,
         std::string fragmentShaderFilename,
         const vk::Extent2D& swapChainExtent,
-        DescriptorSetLayout& descriptorSetLayout,
+        vk::DescriptorSetLayout descriptorSetLayout,
         const vk::RenderPass& renderPass);
 
     operator vk::Pipeline() const

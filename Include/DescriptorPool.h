@@ -3,17 +3,17 @@
 
 #include "../Include/Base.h"
 
-class Engine;
+class Device;
 
 class DescriptorPool {
 public:
-    DescriptorPool(Engine& engine);
+    DescriptorPool(Device& engine);
 
     ~DescriptorPool();
 
     operator vk::DescriptorPool() const;
 
 private:
-    Engine& mEngine;
+    Device& mDevice;
     vk::DescriptorPool mDescriptorPool;
 };

@@ -17,14 +17,14 @@ Pipeline::Pipeline(
     std::string vertexShaderFilename,
     std::string fragmentShaderFilename,
     const vk::Extent2D& swapChainExtent,
-    DescriptorSetLayout& descriptorSetLayout,
+    vk::DescriptorSetLayout descriptorSetLayout,
     const vk::RenderPass& renderPass)
     : mDevice(device)
 {
     ShaderModule vertexShaderModule(mDevice, vertexShaderFilename);
     ShaderModule fragmentShaderModule(mDevice, fragmentShaderFilename);
 
-    std::cout << "ok\n";
+    std::cout << "shaders ok\n";
 
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo;
     vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
@@ -104,8 +104,7 @@ Pipeline::Pipeline(
 
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
     pipelineLayoutInfo.setLayoutCount = 1;
-    vk::DescriptorSetLayout layout = static_cast<vk::DescriptorSetLayout>(descriptorSetLayout);
-    pipelineLayoutInfo.pSetLayouts = &layout;
+    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
     mPipelineLayout =
         static_cast<vk::Device>(mDevice).createPipelineLayout(pipelineLayoutInfo, nullptr);
