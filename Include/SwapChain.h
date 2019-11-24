@@ -11,7 +11,7 @@ class SwapChain {
 public:
     SwapChain(Device& device, const vk::Extent2D& extent);
 
-    operator const vk::SwapchainKHR() const
+    operator vk::SwapchainKHR() const
     {
         return mSwapChain;
     }

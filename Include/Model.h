@@ -7,7 +7,6 @@
 #include "../Include/Pipeline.h"
 #include "../Include/RenderPass.h"
 #include "../Include/Sampler.h"
-#include "../Include/SwapChain.h"
 
 class Device;
 
@@ -58,19 +57,15 @@ class Model {
 public:
     Model(
         Device& device,
-        //DescriptorSetLayout& descriptorSetLayout,
-        //DescriptorPool& descriptorPool,
         DescriptorManager& descriptorManager,
-        SwapChain& swapChain,
+        vk::Extent2D swapChainExtent,
         RenderPass& renderPass,
         std::string filename);
 
     Model(
         Device& device,
-        //DescriptorSetLayout& descriptorSetLayout,
-        //DescriptorPool& descriptorPool,
         DescriptorManager& descriptorManager,
-        SwapChain& swapChain,
+        vk::Extent2D swapChainExtent,
         RenderPass& renderPass,
         glm::mat4 worldMatrix,
         Image texture,
@@ -99,7 +94,7 @@ public:
 
     void updateUniformBuffer();
 
-    vk::DescriptorSet createDescriptorSet(
+    DescriptorSet createDescriptorSet(
         vk::Buffer uniformBuffer, vk::ImageView textureView, vk::Sampler textureSampler);
 
     //private:
@@ -112,9 +107,7 @@ public:
     Buffer mUniformBuffer;
     Sampler mTextureSampler;
     UniformBufferObject mUniformBufferObject;
-    //DescriptorSetLayout mDescriptorSetLayout;
-    //DescriptorPool mDescriptorPool;
     DescriptorManager& mDescriptorManager;
-    vk::DescriptorSet mDescriptorSet;
+    DescriptorSet mDescriptorSet;
     Pipeline mPipeline;
 };

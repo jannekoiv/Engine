@@ -166,9 +166,8 @@ void Renderer::drawFrame(SwapChain& swapChain)
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = &mRenderFinishedSemaphore;
 
-    vk::SwapchainKHR swapChains[] = {swapChain};
     presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
+    presentInfo.pSwapchains = &static_cast<vk::SwapchainKHR>(swapChain);
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr;
 

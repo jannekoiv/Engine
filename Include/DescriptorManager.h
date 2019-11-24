@@ -2,9 +2,12 @@
 #pragma once
 
 #include "../Include/Base.h"
+#include "../Include/DescriptorSet.h"
 #include <list>
 
 class Device;
+
+const int maxSets = 10;
 
 class DescriptorContainer {
 public:
@@ -15,19 +18,24 @@ public:
         return mBindings;
     }
 
-    std::string name()
+    int setsLeft()
     {
-        return mName;
+        return mSetsLeft;
+    }
+
+    vk::DescriptorSetLayout layout()
+    {
+        return mLayout;
     }
 
     vk::DescriptorSet createDescriptorSet();
 
-//private:
+private:
     vk::Device mDevice;
-    std::string mName;
     std::vector<vk::DescriptorSetLayoutBinding> mBindings;
+    int mSetsLeft;
     vk::DescriptorSetLayout mLayout;
-    vk::DescriptorPool mPool;
+    std::list<vk::DescriptorPool> mPools;
 };
 
 class DescriptorManager {
@@ -36,15 +44,9 @@ public:
 
     ~DescriptorManager();
 
-    vk::DescriptorSetLayout lastLayout()
-    {
-        return mLastLayout;
-    }
-
-    vk::DescriptorSet createDescriptorSet(std::vector<vk::DescriptorSetLayoutBinding> bindings);
+    DescriptorSet createDescriptorSet(std::vector<vk::DescriptorSetLayoutBinding> bindings);
 
 private:
     Device& mDevice;
     std::list<DescriptorContainer> mContainers;
-    vk::DescriptorSetLayout mLastLayout;
 };

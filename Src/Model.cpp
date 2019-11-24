@@ -249,10 +249,8 @@ Image createTextureImage(Device& device, std::string filename)
 
 Model createModelFromFile(
     Device& device,
-    //DescriptorSetLayout& descriptorSetLayout,
-    //DescriptorPool& descriptorPool,
     DescriptorManager& descriptorManager,
-    SwapChain& swapChain,
+    vk::Extent2D swapChainExtent,
     RenderPass& renderPass,
     std::string filename)
 {
@@ -296,10 +294,8 @@ Model createModelFromFile(
 
     return Model(
         device,
-        //descriptorSetLayout,
-        //descriptorPool,
         descriptorManager,
-        swapChain,
+        swapChainExtent,
         renderPass,
         worldMatrix,
         image,
@@ -373,23 +369,18 @@ Buffer createIndexBuffer(Device& device, std::vector<uint32_t>& indices)
 
 Model::Model(
     Device& device,
-    //DescriptorSetLayout& descriptorSetLayout,
-    //DescriptorPool& descriptorPool,
     DescriptorManager& descriptorManager,
-    SwapChain& swapChain,
+    vk::Extent2D swapChainExtent,
     RenderPass& renderPass,
     std::string filename)
-    : Model(createModelFromFile(device, descriptorManager, swapChain, renderPass, filename))
-//device, descriptorSetLayout, descriptorPool, swapChain, renderPass, filename))
+    : Model(createModelFromFile(device, descriptorManager, swapChainExtent, renderPass, filename))
 {
 }
 
 Model::Model(
     Device& device,
-    //DescriptorSetLayout& descriptorSetLayout,
-    //DescriptorPool& descriptorPool,
     DescriptorManager& descriptorManager,
-    SwapChain& swapChain,
+    vk::Extent2D swapChainExtent,
     RenderPass& renderPass,
     glm::mat4 worldMatrix,
     Image texture,
@@ -403,8 +394,6 @@ Model::Model(
       mIndexCount(indices.size()),
       mUniformBuffer(createUniformBuffer(mDevice)),
       mTextureSampler(mDevice, vk::SamplerAddressMode::eClampToEdge),
-      //mDescriptorSetLayout(descriptorSetLayout),
-      //mDescriptorPool(descriptorPool),
       mDescriptorManager(descriptorManager),
       mDescriptorSet(createDescriptorSet(mUniformBuffer, mTexture.view(), mTextureSampler)),
       mPipeline(
@@ -413,8 +402,8 @@ Model::Model(
           Vertex::getAttributeDescriptions(),
           "d:/Shaders/vert.spv",
           "d:/Shaders/frag.spv",
-          swapChain.extent(),
-          mDescriptorManager.lastLayout(),
+          swapChainExtent,
+          mDescriptorSet.layout(),
           renderPass)
 {
 }
@@ -427,46 +416,30 @@ void Model::updateUniformBuffer()
     static_cast<vk::Device>(mDevice).unmapMemory(mUniformBuffer.memory());
 }
 
-vk::DescriptorSet Model::createDescriptorSet(
+DescriptorSet Model::createDescriptorSet(
     vk::Buffer uniformBuffer, vk::ImageView textureView, vk::Sampler textureSampler)
 {
     std::vector<vk::DescriptorSetLayoutBinding> bindings = {
         {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
         {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
 
-    vk::DescriptorSet descriptorSet = mDescriptorManager.createDescriptorSet(bindings);
+    DescriptorSet descriptorSet = mDescriptorManager.createDescriptorSet(bindings);
 
-    std::array<vk::DescriptorBufferInfo, 1> bufferInfos;
-    for (size_t i = 0; i < bufferInfos.size(); i++) {
-        bufferInfos[i].buffer = uniformBuffer;
-        bufferInfos[i].offset = 0;
-        bufferInfos[i].range = sizeof(UniformBufferObject);
-    }
+    vk::DescriptorBufferInfo bufferInfo;
+    bufferInfo.buffer = uniformBuffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(UniformBufferObject);
 
-    std::array<vk::DescriptorImageInfo, 1> imageInfos;
-    for (size_t i = 0; i < imageInfos.size(); i++) {
-        imageInfos[i].imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-        imageInfos[i].imageView = textureView;
-        imageInfos[i].sampler = textureSampler;
-    }
+    vk::DescriptorImageInfo imageInfo;
+    imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+    imageInfo.imageView = textureView;
+    imageInfo.sampler = textureSampler;
 
-    std::array<vk::WriteDescriptorSet, 2> descriptorWrites;
-
-    descriptorWrites[0].dstSet = descriptorSet;
-    descriptorWrites[0].dstBinding = 0;
-    descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = vk::DescriptorType::eUniformBuffer;
-    descriptorWrites[0].descriptorCount = bufferInfos.size();
-    descriptorWrites[0].pBufferInfo = bufferInfos.data();
-
-    descriptorWrites[1].dstSet = descriptorSet;
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-    descriptorWrites[1].descriptorCount = imageInfos.size();
-    descriptorWrites[1].pImageInfo = imageInfos.data();
-
-    static_cast<vk::Device>(mDevice).updateDescriptorSets(descriptorWrites, nullptr);
+    descriptorSet.writeDescriptors({{0, 0, 1, &bufferInfo}, {1, 0, 1, &imageInfo}});
 
     return descriptorSet;
 }
+
+
+
+
