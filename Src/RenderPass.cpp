@@ -5,60 +5,37 @@
 #include <iostream>
 #include <vulkan/vulkan.hpp>
 
-vk::Format findSupportedFormat(
-    const Device& device,
-    const std::vector<vk::Format>& candidates,
-    vk::ImageTiling tiling,
-    vk::FormatFeatureFlags features)
-{
-    for (vk::Format format : candidates) {
-        vk::FormatProperties properties = device.physicalDevice().getFormatProperties(format);
-
-        if (tiling == vk::ImageTiling::eLinear &&
-            (properties.linearTilingFeatures & features) == features) {
-            return format;
-        } else if (
-            tiling == vk::ImageTiling::eOptimal &&
-            (properties.optimalTilingFeatures & features) == features) {
-            return format;
-        }
-    }
-    throw std::runtime_error("Failed to find supported format.");
-}
-
-vk::Format findDepthAttachmentFormat(const Device& device)
-{
-    return findSupportedFormat(
-        device,
-        {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
-        vk::ImageTiling::eOptimal,
-        vk::FormatFeatureFlagBits::eDepthStencilAttachment);
-}
-
-RenderPass::RenderPass(Device& device, vk::Format swapChainFormat)
+RenderPass::RenderPass(Device& device, vk::Format swapChainFormat, vk::AttachmentLoadOp loadOp)
     : mDevice(device), mDepthAttachmentFormat(findDepthAttachmentFormat(mDevice))
 {
-    vk::AttachmentDescription colorAttachment;
+
+    vk::AttachmentDescription colorAttachment{};
     colorAttachment.format = swapChainFormat;
     colorAttachment.samples = vk::SampleCountFlagBits::e1;
-    colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+    colorAttachment.loadOp = loadOp;
     colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
     colorAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
     colorAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
     colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
     colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
+    if (loadOp == vk::AttachmentLoadOp::eLoad) {
+        colorAttachment.initialLayout = vk::ImageLayout::ePresentSrcKHR;
+    }
 
     vk::AttachmentReference colorAttachmentRef{0, vk::ImageLayout::eColorAttachmentOptimal};
 
-    vk::AttachmentDescription depthAttachment;
+    vk::AttachmentDescription depthAttachment{};
     depthAttachment.format = mDepthAttachmentFormat;
     depthAttachment.samples = vk::SampleCountFlagBits::e1;
-    depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+    depthAttachment.loadOp = loadOp;
     depthAttachment.storeOp = vk::AttachmentStoreOp::eStore;
     depthAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
     depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
     depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
-    depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+    depthAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
+    if (loadOp == vk::AttachmentLoadOp::eLoad) {
+        depthAttachment.initialLayout = vk::ImageLayout::ePresentSrcKHR;
+    }
 
     vk::AttachmentReference depthAttachmentRef{1, vk::ImageLayout::eDepthStencilAttachmentOptimal};
 

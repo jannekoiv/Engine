@@ -51,7 +51,8 @@ SwapChain::SwapChain(Device& device, const vk::Extent2D& extent) : mDevice(devic
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageExtent = mExtent;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+    createInfo.imageUsage =
+        vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
     createInfo.preTransform = swapChainSupportDetails.capabilities.currentTransform;
     createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
     createInfo.presentMode = presentMode;
@@ -77,6 +78,7 @@ SwapChain::SwapChain(Device& device, const vk::Extent2D& extent) : mDevice(devic
     std::cout << "swapchain images size " << images.size() << "\n";
 
     for (size_t i = 0; i < images.size(); i++) {
+        mImages.push_back(images[i]);
         mImageViews.push_back(createImageView(mDevice, images[i], mFormat));
     }
 }

@@ -13,10 +13,10 @@ public:
         Device& device,
         vk::VertexInputBindingDescription bindingDescription,
         std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
+        vk::DescriptorSetLayout descriptorSetLayout,
         std::string vertexShaderFilename,
         std::string fragmentShaderFilename,
         const vk::Extent2D& swapChainExtent,
-        vk::DescriptorSetLayout descriptorSetLayout,
         const vk::RenderPass& renderPass);
 
     operator vk::Pipeline() const

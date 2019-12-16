@@ -46,6 +46,9 @@ public:
         return mView;
     }
 
+    void transitionLayout(
+        vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+
 private:
     Device& mDevice;
     vk::Extent3D mExtent;

@@ -13,10 +13,10 @@ Pipeline::Pipeline(
     Device& device,
     vk::VertexInputBindingDescription bindingDescription,
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
+    vk::DescriptorSetLayout descriptorSetLayout,
     std::string vertexShaderFilename,
     std::string fragmentShaderFilename,
     const vk::Extent2D& swapChainExtent,
-    vk::DescriptorSetLayout descriptorSetLayout,
     const vk::RenderPass& renderPass)
     : mDevice(device)
 {
@@ -74,7 +74,6 @@ Pipeline::Pipeline(
     rasterizer.rasterizerDiscardEnable = false;
     rasterizer.polygonMode = vk::PolygonMode::eFill;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = vk::CullModeFlagBits::eBack;
     rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
     rasterizer.depthBiasEnable = false;
 

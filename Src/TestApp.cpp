@@ -1,4 +1,5 @@
 #include "../Include/Engine.h"
+#include "../Include/Material.h"
 #include "../Include/Model.h"
 #include "../Include/Renderer.h"
 #include "GLFW/glfw3.h"
@@ -38,7 +39,7 @@ GLFWwindow* initWindow(const int width, const int height)
 float rot = 0.0f;
 
 void mainLoop(
-    GLFWwindow* window, Renderer& renderer, std::vector<Model*> models, SwapChain& swapChain)
+    GLFWwindow* window, Renderer& renderer, std::vector<Model>& models, SwapChain& swapChain)
 {
     glm::vec3 positions[] = {
         {-2.0f, -2.0f, 0.0f}, {-2.0f, 2.0f, 0.0f}, {2.0f, 2.0f, 0.0f}, {2.0f, -2.0f, 0.0f}};
@@ -47,9 +48,9 @@ void mainLoop(
         glfwPollEvents();
 
         for (int i = 0; i < 4; i++) {
-            Model* model = models[i];
-            auto& worldView = model->mUniformBufferObject.worldView;
-            auto& proj = model->mUniformBufferObject.proj;
+            Model& model = models[i];
+            auto& worldView = model.mUniformBufferObject.worldView;
+            auto& proj = model.mUniformBufferObject.proj;
 
             worldView = glm::lookAt(
                 glm::vec3(0.0f, 0.0f, 10.0f),
@@ -62,37 +63,51 @@ void mainLoop(
             proj = glm::perspective(glm::radians(45.0f), 1920.0f / 1080.0f, 0.1f, 1000.0f);
             proj[1][1] *= -1.0f;
 
-            model->updateUniformBuffer();
+            model.updateUniformBuffer();
         }
         rot += 0.005f;
-        renderer.drawFrame(swapChain);
+        renderer.drawFrame();
     }
 }
 
-static std::vector<vk::Framebuffer> createFramebuffers(
-    Device& device, SwapChain& swapChain, vk::ImageView depthImageView, RenderPass& renderPass)
-{
-    std::vector<vk::Framebuffer> frameBuffers(swapChain.imageViews().size());
-
-    for (size_t i = 0; i < swapChain.imageViews().size(); i++) {
-        std::vector<vk::ImageView> attachments = {swapChain.imageViews()[i], depthImageView};
-
-        vk::FramebufferCreateInfo framebufferInfo;
-        framebufferInfo.renderPass = renderPass;
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = swapChain.extent().width;
-        framebufferInfo.height = swapChain.extent().height;
-        framebufferInfo.layers = 1;
-
-        frameBuffers[i] =
-            static_cast<vk::Device>(device).createFramebuffer(framebufferInfo, nullptr);
+class C {
+public:
+    C(int data)
+    {
+        mData = data;
     }
-    return frameBuffers;
-}
+
+    C(const C&) = default;
+
+    C(C&&) = delete;
+
+    C& operator=(const C&) = default;
+
+    C& operator=(C&&) = delete;
+
+private:
+    int mData;
+};
+
+struct less_than_key {
+    inline bool operator()(const C& struct1, const C& struct2)
+    {
+        return true;
+    }
+};
 
 int main()
 {
+    //std::vector<C> vec{};
+
+    //vec.emplace_back(3);
+    //vec.emplace_back(1);
+    //vec.emplace_back(2);
+
+    //std::sort(std::begin(vec), std::end(vec), less_than_key());
+
+    //return 0;
+
     InitInfo initInfo{};
     GLFWwindow* window = initWindow(initInfo.width, initInfo.height);
 
@@ -100,40 +115,33 @@ int main()
 
     SwapChain swapChain{device, vk::Extent2D{initInfo.width, initInfo.height}};
 
-    RenderPass renderPass{device, swapChain.format()};
-
     Image depthImage{
         device,
         vk::Extent3D(swapChain.extent()),
-        renderPass.depthAttachmentFormat(),
+        findDepthAttachmentFormat(device),
         vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eDepthStencilAttachment,
+        vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eDeviceLocal};
 
-    std::vector<vk::Framebuffer> frameBuffers =
-        createFramebuffers(device, swapChain, depthImage.view(), renderPass);
 
     DescriptorManager descriptorManager{device};
 
-    std::vector<Model*> models;
+    std::vector<Model> models;
 
     for (int i = 0; i < 4; i++) {
-        Model* model =
-            new Model(device, descriptorManager, swapChain.extent(), renderPass, "d:/apina.dat");
-        models.push_back(model);
+        models.push_back(createModelFromFile(
+            device, descriptorManager, swapChain, depthImage, "d:/apina.dat"));
     }
+
+    //std::sort(std::begin(models), std::end(models), less_than_key());
 
     std::cout << "Models loaded\n";
 
-    Renderer renderer(device, models, frameBuffers, renderPass, swapChain);
+    Renderer renderer{device, swapChain, depthImage, models};
 
     std::cout << "Renderer ok\n";
 
     mainLoop(window, renderer, models, swapChain);
-
-    for (Model* model : models) {
-        delete model;
-    }
 
     return 0;
 }

@@ -26,14 +26,25 @@ public:
         return mExtent;
     }
 
-    std::vector<vk::ImageView>& imageViews()
+    vk::Image image(const int index)
     {
-        return mImageViews;
+        return mImages[index];
+    }
+
+    vk::ImageView imageView(const int index)
+    {
+        return mImageViews[index];
+    }
+
+    size_t imageCount()
+    {
+        return mImageViews.size();
     }
 
 private:
     Device& mDevice;
     vk::SwapchainKHR mSwapChain;
+    std::vector<vk::Image> mImages;
     std::vector<vk::ImageView> mImageViews;
     vk::Format mFormat;
     vk::Extent2D mExtent;

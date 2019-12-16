@@ -4,8 +4,8 @@
 #include "../Include/Buffer.h"
 #include "../Include/DescriptorManager.h"
 #include "../Include/Image.h"
+#include "../Include/Material.h"
 #include "../Include/Pipeline.h"
-#include "../Include/RenderPass.h"
 #include "../Include/Sampler.h"
 
 class Device;
@@ -55,18 +55,17 @@ struct Vertex {
 
 class Model {
 public:
-    Model(
-        Device& device,
-        DescriptorManager& descriptorManager,
-        vk::Extent2D swapChainExtent,
-        RenderPass& renderPass,
-        std::string filename);
+    Model(const Model&) = delete;
+    Model(Model&&) = default;
+
+    Model& operator=(const Model&) = delete;
+    Model& operator=(Model&&) = default;
 
     Model(
         Device& device,
         DescriptorManager& descriptorManager,
-        vk::Extent2D swapChainExtent,
-        RenderPass& renderPass,
+        SwapChain& swapChain,
+        Image& depthImage,
         glm::mat4 worldMatrix,
         Image texture,
         std::vector<Vertex> vertices,
@@ -109,5 +108,12 @@ public:
     UniformBufferObject mUniformBufferObject;
     DescriptorManager& mDescriptorManager;
     DescriptorSet mDescriptorSet;
-    Pipeline mPipeline;
+    Material mMaterial;
 };
+
+Model createModelFromFile(
+    Device& device,
+    DescriptorManager& descriptorManager,
+    SwapChain& swapChain,
+    Image& depthImage,
+    std::string filename);

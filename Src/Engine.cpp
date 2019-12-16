@@ -9,10 +9,10 @@
 std::vector<vk::Framebuffer> createFrameBuffers(
     Device& device, SwapChain& swapChain, vk::ImageView depthImageView, RenderPass& renderPass)
 {
-    std::vector<vk::Framebuffer> frameBuffers(swapChain.imageViews().size());
+    std::vector<vk::Framebuffer> frameBuffers{swapChain.imageCount()};
 
-    for (size_t i = 0; i < swapChain.imageViews().size(); i++) {
-        std::vector<vk::ImageView> attachments = {swapChain.imageViews()[i], depthImageView};
+    for (size_t i = 0; i < swapChain.imageCount(); i++) {
+        std::vector<vk::ImageView> attachments = {swapChain.imageView(i), depthImageView};
 
         vk::FramebufferCreateInfo framebufferInfo;
         framebufferInfo.renderPass = renderPass;
@@ -35,11 +35,11 @@ Engine::Engine(const InitInfo& initInfo, GLFWwindow* window)
           initInfo.validationLayers,
           initInfo.deviceExtensions),
       mSwapChain(mDevice, vk::Extent2D(initInfo.width, initInfo.height)),
-      mRenderPass(mDevice, mSwapChain.format()),
+      mRenderPass(mDevice, mSwapChain.format(), vk::AttachmentLoadOp::eClear),
       mDepthImage(
           mDevice,
           vk::Extent3D(mSwapChain.extent()),
-          mRenderPass.depthAttachmentFormat(),
+          findDepthAttachmentFormat(mDevice),
           vk::ImageTiling::eOptimal,
           vk::ImageUsageFlagBits::eDepthStencilAttachment,
           vk::MemoryPropertyFlagBits::eDeviceLocal),

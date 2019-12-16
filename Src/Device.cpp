@@ -318,3 +318,31 @@ void Device::flushAndFreeCommandBuffer(vk::CommandBuffer commandBuffer)
     mGraphicsQueue.waitIdle();
     static_cast<vk::Device>(mDevice).freeCommandBuffers(mCommandPool, commandBuffer);
 }
+
+vk::Format Device::findSupportedFormat(
+    const std::vector<vk::Format>& candidates,
+    vk::ImageTiling tiling,
+    vk::FormatFeatureFlags features)
+{
+    for (vk::Format format : candidates) {
+        vk::FormatProperties properties = mPhysicalDevice.getFormatProperties(format);
+
+        if (tiling == vk::ImageTiling::eLinear &&
+            (properties.linearTilingFeatures & features) == features) {
+            return format;
+        } else if (
+            tiling == vk::ImageTiling::eOptimal &&
+            (properties.optimalTilingFeatures & features) == features) {
+            return format;
+        }
+    }
+    throw std::runtime_error("Failed to find supported format.");
+}
+
+vk::Format findDepthAttachmentFormat(Device& device)
+{
+    return device.findSupportedFormat(
+        {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
+        vk::ImageTiling::eOptimal,
+        vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+}

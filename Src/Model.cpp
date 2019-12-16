@@ -29,170 +29,6 @@ std::string readString(std::ifstream& file)
     return std::string(tmp);
 }
 
-void transitionImageLayout(
-    Device& device,
-    vk::Image image,
-    vk::Format format,
-    vk::ImageLayout oldLayout,
-    vk::ImageLayout newLayout)
-{
-    vk::CommandBuffer commandBuffer = device.createAndBeginCommandBuffer();
-
-    vk::ImageMemoryBarrier barrier;
-    barrier.oldLayout = oldLayout;
-    barrier.newLayout = newLayout;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = image;
-    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-
-    vk::PipelineStageFlags srcStage;
-    vk::PipelineStageFlags dstStage;
-
-    if (oldLayout == vk::ImageLayout::eUndefined &&
-        newLayout == vk::ImageLayout::eTransferDstOptimal) {
-        barrier.srcAccessMask = {};
-        barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
-        srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
-        dstStage = vk::PipelineStageFlagBits::eTransfer;
-    } else if (
-        oldLayout == vk::ImageLayout::eUndefined &&
-        newLayout == vk::ImageLayout::eColorAttachmentOptimal) {
-        barrier.srcAccessMask = {};
-        barrier.dstAccessMask =
-            vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
-        srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
-        dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    } else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eGeneral) {
-        barrier.srcAccessMask = {};
-        barrier.dstAccessMask = {};
-        srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
-        dstStage = vk::PipelineStageFlagBits::eAllGraphics;
-    } else if (
-        oldLayout == vk::ImageLayout::eUndefined &&
-        newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
-        barrier.srcAccessMask = {};
-        barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-        srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
-        dstStage = vk::PipelineStageFlagBits::eFragmentShader;
-    } else if (
-        oldLayout == vk::ImageLayout::eTransferDstOptimal &&
-        newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
-        barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-        barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-        srcStage = vk::PipelineStageFlagBits::eTransfer;
-        dstStage = vk::PipelineStageFlagBits::eFragmentShader;
-    } else if (
-        oldLayout == vk::ImageLayout::eTransferSrcOptimal &&
-        newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
-        barrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
-        barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-        srcStage = vk::PipelineStageFlagBits::eTransfer;
-        dstStage = vk::PipelineStageFlagBits::eFragmentShader;
-    } else if (
-        oldLayout == vk::ImageLayout::eUndefined &&
-        newLayout == vk::ImageLayout::eTransferSrcOptimal) {
-        barrier.srcAccessMask = {};
-        barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
-        srcStage = vk::PipelineStageFlagBits::eFragmentShader;
-        dstStage = vk::PipelineStageFlagBits::eTransfer;
-    } else if (
-        oldLayout == vk::ImageLayout::eShaderReadOnlyOptimal &&
-        newLayout == vk::ImageLayout::eTransferSrcOptimal) {
-        barrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
-        barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
-        srcStage = vk::PipelineStageFlagBits::eFragmentShader;
-        dstStage = vk::PipelineStageFlagBits::eTransfer;
-    } else if (
-        oldLayout == vk::ImageLayout::eShaderReadOnlyOptimal &&
-        newLayout == vk::ImageLayout::eColorAttachmentOptimal) {
-        barrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
-        barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
-        srcStage = vk::PipelineStageFlagBits::eAllGraphics;
-        dstStage = vk::PipelineStageFlagBits::eAllGraphics;
-    } else if (
-        oldLayout == vk::ImageLayout::eShaderReadOnlyOptimal &&
-        newLayout == vk::ImageLayout::ePresentSrcKHR) {
-        barrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
-        barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
-        srcStage = vk::PipelineStageFlagBits::eAllGraphics;
-        dstStage = vk::PipelineStageFlagBits::eAllGraphics;
-    } else if (
-        oldLayout == vk::ImageLayout::eColorAttachmentOptimal &&
-        newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
-        barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-        barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead,
-        srcStage = vk::PipelineStageFlagBits::eAllGraphics;
-        dstStage = vk::PipelineStageFlagBits::eAllGraphics;
-    } else if (
-        oldLayout == vk::ImageLayout::ePresentSrcKHR &&
-        newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
-        barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-        barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead,
-        srcStage = vk::PipelineStageFlagBits::eAllGraphics;
-        dstStage = vk::PipelineStageFlagBits::eAllGraphics;
-    } else if (
-        oldLayout == vk::ImageLayout::ePresentSrcKHR &&
-        newLayout == vk::ImageLayout::eTransferSrcOptimal) {
-        barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-        barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
-        srcStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-        dstStage = vk::PipelineStageFlagBits::eTransfer;
-    } else if (
-        oldLayout == vk::ImageLayout::eColorAttachmentOptimal &&
-        newLayout == vk::ImageLayout::eTransferSrcOptimal) {
-        std::cout << "TRANSFERING\n";
-        barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-        barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
-        srcStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-        dstStage = vk::PipelineStageFlagBits::eTransfer;
-    } else if (
-        oldLayout == vk::ImageLayout::eTransferSrcOptimal &&
-        newLayout == vk::ImageLayout::eColorAttachmentOptimal) {
-        std::cout << "TRANSFERING BACK\n";
-        barrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
-        barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-        srcStage = vk::PipelineStageFlagBits::eTransfer;
-        dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    } else if (
-        oldLayout == vk::ImageLayout::eTransferSrcOptimal &&
-        newLayout == vk::ImageLayout::ePresentSrcKHR) {
-        std::cout << "TRANSFERING\n";
-        barrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
-        barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-        srcStage = vk::PipelineStageFlagBits::eTransfer;
-        dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    } else if (
-        oldLayout == vk::ImageLayout::eUndefined &&
-        newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-        barrier.srcAccessMask = {};
-        barrier.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead |
-            vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-        srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
-        dstStage = vk::PipelineStageFlagBits::eEarlyFragmentTests;
-    } else {
-        std::cout << "Unsupported layout transition.\n";
-        throw std::invalid_argument("Unsupported layout transition.");
-    }
-
-    if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-        barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
-        if (hasStencilComponent(format)) {
-            barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
-        }
-    } else {
-        barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-    }
-
-    commandBuffer.pipelineBarrier(srcStage, dstStage, {}, nullptr, nullptr, barrier);
-
-    device.flushAndFreeCommandBuffer(commandBuffer);
-}
-
 Image createTextureImage(Device& device, std::string filename)
 {
     const int bytesPerPixel = 4;
@@ -228,19 +64,15 @@ Image createTextureImage(Device& device, std::string filename)
             vk::ImageUsageFlagBits::eSampled,
         vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-    transitionImageLayout(
-        device,
-        image,
+    image.transitionLayout(
         vk::Format::eR8G8B8A8Unorm,
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eTransferDstOptimal);
 
     stagingBuffer.copyToImage(image);
 
-    transitionImageLayout(
-        device,
-        image,
-        vk::Format::eB8G8R8A8Unorm,
+    image.transitionLayout(
+        vk::Format::eR8G8B8A8Unorm,
         vk::ImageLayout::eTransferDstOptimal,
         vk::ImageLayout::eShaderReadOnlyOptimal);
 
@@ -250,8 +82,8 @@ Image createTextureImage(Device& device, std::string filename)
 Model createModelFromFile(
     Device& device,
     DescriptorManager& descriptorManager,
-    vk::Extent2D swapChainExtent,
-    RenderPass& renderPass,
+    SwapChain& swapChain,
+    Image& depthImage,
     std::string filename)
 {
     std::ifstream file(filename, std::ios::in | std::ios::binary);
@@ -295,8 +127,8 @@ Model createModelFromFile(
     return Model(
         device,
         descriptorManager,
-        swapChainExtent,
-        renderPass,
+        swapChain,
+        depthImage,
         worldMatrix,
         image,
         vertices,
@@ -370,18 +202,8 @@ Buffer createIndexBuffer(Device& device, std::vector<uint32_t>& indices)
 Model::Model(
     Device& device,
     DescriptorManager& descriptorManager,
-    vk::Extent2D swapChainExtent,
-    RenderPass& renderPass,
-    std::string filename)
-    : Model(createModelFromFile(device, descriptorManager, swapChainExtent, renderPass, filename))
-{
-}
-
-Model::Model(
-    Device& device,
-    DescriptorManager& descriptorManager,
-    vk::Extent2D swapChainExtent,
-    RenderPass& renderPass,
+    SwapChain& swapChain,
+    Image& depthImage,
     glm::mat4 worldMatrix,
     Image texture,
     std::vector<Vertex> vertices,
@@ -396,15 +218,15 @@ Model::Model(
       mTextureSampler(mDevice, vk::SamplerAddressMode::eClampToEdge),
       mDescriptorManager(descriptorManager),
       mDescriptorSet(createDescriptorSet(mUniformBuffer, mTexture.view(), mTextureSampler)),
-      mPipeline(
+      mMaterial{
           mDevice,
+          swapChain,
+          depthImage,
           Vertex::getBindingDescription(),
           Vertex::getAttributeDescriptions(),
-          "d:/Shaders/vert.spv",
-          "d:/Shaders/frag.spv",
-          swapChainExtent,
           mDescriptorSet.layout(),
-          renderPass)
+          "d:/Shaders/vert.spv",
+          "d:/Shaders/frag.spv"}
 {
 }
 
@@ -439,7 +261,3 @@ DescriptorSet Model::createDescriptorSet(
 
     return descriptorSet;
 }
-
-
-
-

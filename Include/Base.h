@@ -1,6 +1,6 @@
 #pragma once
 
-#define VULKAN_HPP_NO_SMART_HANDLE
+//#define VULKAN_HPP_NO_SMART_HANDLE
 
 #include <Windows.h>
 #include <vulkan/vulkan.hpp>

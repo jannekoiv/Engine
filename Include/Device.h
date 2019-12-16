@@ -67,7 +67,13 @@ public:
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) const;
 
     vk::CommandBuffer createAndBeginCommandBuffer();
+
     void flushAndFreeCommandBuffer(vk::CommandBuffer commandBuffer);
+
+    vk::Format findSupportedFormat(
+        const std::vector<vk::Format>& candidates,
+        vk::ImageTiling tiling,
+        vk::FormatFeatureFlags features);
 
 private:
     vk::Instance mInstance;
@@ -80,3 +86,8 @@ private:
     vk::Queue mPresentQueue;
     vk::CommandPool mCommandPool;
 };
+
+vk::Format findDepthAttachmentFormat(Device& device);
+
+
+

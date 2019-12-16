@@ -1,6 +1,8 @@
 
 #include "../Include/Renderer.h"
 #include "../Include/Device.h"
+#include "../Include/Framebuffer.h"
+#include "../Include/Image.h"
 #include "../Include/Model.h"
 #include "../Include/RenderPass.h"
 #include "../Include/SwapChain.h"
@@ -29,78 +31,228 @@ void alignedFree(void* data)
 #endif
 }
 
-//UboWorldView createUniformObject(Engine& engine, std::vector<Model*> models);
-//Buffer createUniformBuffer(Engine& engine, std::vector<Model*> models);
+//static std::vector<Framebuffer> createFramebuffers(
+//    Device& device, SwapChain& swapChain, Image& depthImage, RenderPass& renderPass)
+//{
+//    std::vector<Framebuffer> frameBuffers;
+//    for (int i = 0; i < swapChain.imageCount(); i++) {
+//        frameBuffers.emplace_back(
+//            device, swapChain.imageView(i), depthImage.view(), swapChain.extent(), renderPass);
+//    }
+//    return frameBuffers;
+//}
+
+void clearColor(Device& device, SwapChain& swapChain, int index, vk::CommandBuffer commandBuffer)
+{
+    vk::ClearColorValue clearColor{std::array<float, 4>{0.5f, 0.4f, 0.5f, 1.0f}};
+
+    vk::ImageSubresourceRange imageRange{};
+    imageRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+    imageRange.baseMipLevel = 0;
+    imageRange.levelCount = 1;
+    imageRange.baseArrayLayer = 0;
+    imageRange.layerCount = 1;
+
+    vk::ImageMemoryBarrier presentToClearBarrier{};
+    presentToClearBarrier.srcAccessMask = vk::AccessFlagBits::eMemoryRead;
+    presentToClearBarrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+    presentToClearBarrier.oldLayout = vk::ImageLayout::eUndefined;
+    presentToClearBarrier.newLayout = vk::ImageLayout::eTransferDstOptimal;
+    presentToClearBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    presentToClearBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    presentToClearBarrier.image = swapChain.image(index);
+    presentToClearBarrier.subresourceRange = imageRange;
+
+    // Change layout of image to be optimal for presenting
+    vk::ImageMemoryBarrier clearToPresentBarrier{};
+    clearToPresentBarrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+    clearToPresentBarrier.dstAccessMask = vk::AccessFlagBits::eMemoryRead;
+    clearToPresentBarrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
+    clearToPresentBarrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
+    clearToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    clearToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    clearToPresentBarrier.image = swapChain.image(index);
+    clearToPresentBarrier.subresourceRange = imageRange;
+
+    commandBuffer.pipelineBarrier(
+        vk::PipelineStageFlagBits::eTransfer,
+        vk::PipelineStageFlagBits::eTransfer,
+        {},
+        {},
+        {},
+        {presentToClearBarrier});
+
+    commandBuffer.clearColorImage(
+        swapChain.image(index), vk::ImageLayout::eTransferDstOptimal, clearColor, imageRange);
+
+    commandBuffer.pipelineBarrier(
+        vk::PipelineStageFlagBits::eTransfer,
+        vk::PipelineStageFlagBits::eBottomOfPipe,
+        {},
+        {},
+        {},
+        {clearToPresentBarrier});
+}
+
+void clearDepthStencil(Device& device, Image& depthImage, vk::CommandBuffer commandBuffer)
+{
+    vk::ClearDepthStencilValue clearDepthStencil{1.0f, 0};
+
+    vk::ImageSubresourceRange imageRange{};
+    imageRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+    imageRange.baseMipLevel = 0;
+    imageRange.levelCount = 1;
+    imageRange.baseArrayLayer = 0;
+    imageRange.layerCount = 1;
+
+    vk::ImageMemoryBarrier presentToClearBarrier{};
+    presentToClearBarrier.srcAccessMask = vk::AccessFlagBits::eMemoryRead;
+    presentToClearBarrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+    presentToClearBarrier.oldLayout = vk::ImageLayout::eUndefined;
+    presentToClearBarrier.newLayout = vk::ImageLayout::eTransferDstOptimal;
+    presentToClearBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    presentToClearBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    presentToClearBarrier.image = depthImage;
+    presentToClearBarrier.subresourceRange = imageRange;
+
+    // Change layout of image to be optimal for presenting
+    vk::ImageMemoryBarrier clearToPresentBarrier{};
+    clearToPresentBarrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+    clearToPresentBarrier.dstAccessMask = vk::AccessFlagBits::eMemoryRead;
+    clearToPresentBarrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
+    clearToPresentBarrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
+    clearToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    clearToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    clearToPresentBarrier.image = depthImage;
+    clearToPresentBarrier.subresourceRange = imageRange;
+
+    commandBuffer.pipelineBarrier(
+        vk::PipelineStageFlagBits::eTransfer,
+        vk::PipelineStageFlagBits::eTransfer,
+        {},
+        {},
+        {},
+        {presentToClearBarrier});
+
+    commandBuffer.clearDepthStencilImage(
+        depthImage, vk::ImageLayout::eTransferDstOptimal, clearDepthStencil, imageRange);
+
+    commandBuffer.pipelineBarrier(
+        vk::PipelineStageFlagBits::eTransfer,
+        vk::PipelineStageFlagBits::eBottomOfPipe,
+        {},
+        {},
+        {},
+        {clearToPresentBarrier});
+}
+
+void clearPass(
+    vk::CommandBuffer commandBuffer,
+    vk::RenderPass renderPass,
+    vk::Framebuffer frameBuffer,
+    vk::Extent2D swapChainExtent)
+{
+    vk::RenderPassBeginInfo renderPassInfo;
+    renderPassInfo.renderPass = renderPass;
+    renderPassInfo.framebuffer = frameBuffer;
+    renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
+    renderPassInfo.renderArea.extent = swapChainExtent;
+    std::array<vk::ClearValue, 2> clearValues;
+    clearValues[0].color = std::array<float, 4>{0.5f, 0.4f, 0.5f, 1.0f};
+    clearValues[1].depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
+
+    commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+    commandBuffer.endRenderPass();
+}
+
+void drawModelsPass(
+    vk::CommandBuffer commandBuffer,
+    int framebufferIndex,
+    vk::Extent2D swapChainExtent,
+    std::vector<Model>& models)
+{
+    vk::RenderPassBeginInfo renderPassInfo;
+    renderPassInfo.renderPass = models.front().mMaterial.renderPass();
+    renderPassInfo.framebuffer = models.front().mMaterial.frameBuffer(framebufferIndex);
+    renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
+    renderPassInfo.renderArea.extent = swapChainExtent;
+
+    commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+
+    for (Model& model : models) {
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, model.mMaterial.pipeline());
+        commandBuffer.bindVertexBuffers(0, {model.vertexBuffer()}, {0});
+        commandBuffer.bindIndexBuffer(model.indexBuffer(), 0, vk::IndexType::eUint32);
+
+        commandBuffer.bindDescriptorSets(
+            vk::PipelineBindPoint::eGraphics,
+            model.mMaterial.pipeline().layout(),
+            0,
+            model.descriptorSet(),
+            nullptr);
+
+        commandBuffer.drawIndexed(static_cast<uint32_t>(model.indexCount()), 1, 0, 0, 0);
+    }
+
+    commandBuffer.endRenderPass();
+}
 
 std::vector<vk::CommandBuffer> createCommandBuffers(
     Device& device,
-    std::vector<Model*> models,
-    std::vector<vk::Framebuffer>& frameBuffers,
-    RenderPass& renderPass,
-    SwapChain& swapChain)
+    SwapChain& swapChain,
+    Image& depthImage,
+    std::vector<Model>& models,
+    RenderPass& clearRenderPass,
+    std::vector<Framebuffer>& clearFrameBuffers)
 {
     vk::CommandBufferAllocateInfo commandBufferInfo(
-        device.commandPool(), vk::CommandBufferLevel::ePrimary, frameBuffers.size());
+        device.commandPool(), vk::CommandBufferLevel::ePrimary, swapChain.imageCount());
 
     auto commandBuffers = static_cast<vk::Device>(device).allocateCommandBuffers(commandBufferInfo);
 
-    size_t frameBufferIndex = 0;
+    size_t framebufferIndex = 0;
     for (vk::CommandBuffer commandBuffer : commandBuffers) {
         vk::CommandBufferBeginInfo beginInfo;
         beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
         beginInfo.pInheritanceInfo = nullptr;
         commandBuffer.begin(beginInfo);
 
-        vk::RenderPassBeginInfo renderPassInfo;
-        renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = frameBuffers[frameBufferIndex++];
-        renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
-        renderPassInfo.renderArea.extent = swapChain.extent();
+        clearPass(
+            commandBuffer,
+            clearRenderPass,
+            clearFrameBuffers[framebufferIndex],
+            swapChain.extent());
 
-        std::array<vk::ClearValue, 2> clearValues;
-        clearValues[0].color = std::array<float, 4>{0.5f, 0.4f, 0.5f, 1.0f};
-        clearValues[1].depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
+        drawModelsPass(commandBuffer, framebufferIndex, swapChain.extent(), models);
 
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
-
-        commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
-
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, models.front()->mPipeline);
-
-        for (Model* model : models) {
-            std::array<vk::Buffer, 1> buffers = {static_cast<vk::Buffer>(model->vertexBuffer())};
-            std::array<vk::DeviceSize, 1> sizes = {0};
-            commandBuffer.bindVertexBuffers(0, buffers, sizes);
-
-            commandBuffer.bindIndexBuffer(model->indexBuffer(), 0, vk::IndexType::eUint32);
-
-            commandBuffer.bindDescriptorSets(
-                vk::PipelineBindPoint::eGraphics,
-                models.front()->mPipeline.layout(),
-                0,
-                model->descriptorSet(),
-                nullptr);
-
-            commandBuffer.drawIndexed(static_cast<uint32_t>(model->indexCount()), 1, 0, 0, 0);
-        }
-
-        commandBuffer.endRenderPass();
+        framebufferIndex++;
         commandBuffer.end();
     }
     return commandBuffers;
 }
 
+static std::vector<Framebuffer> createFramebuffers(
+    Device& device, SwapChain& swapChain, Image& depthImage, RenderPass& renderPass)
+{
+    std::vector<Framebuffer> frameBuffers;
+    for (int i = 0; i < swapChain.imageCount(); i++) {
+        frameBuffers.emplace_back(
+            device, swapChain.imageView(i), depthImage.view(), swapChain.extent(), renderPass);
+    }
+    return frameBuffers;
+}
+
 Renderer::Renderer(
-    Device& device,
-    std::vector<Model*> models,
-    std::vector<vk::Framebuffer>& frameBuffers,
-    RenderPass& renderPass,
-    SwapChain& swapChain)
+    Device& device, SwapChain& swapChain, Image& depthImage, std::vector<Model>& models)
     : mDevice(device),
-      mCommandBuffers(createCommandBuffers(device, models, frameBuffers, renderPass, swapChain)),
-      //      mUboWorldView(createUniformObject(mEngine, models)),
-      //      mUniformBuffer(createUniformBuffer(mEngine, models)),
+      mSwapChain(swapChain),
+      mDepthImage(depthImage),
+      mClearRenderPass{mDevice, swapChain.format(), vk::AttachmentLoadOp::eClear},
+      mClearFramebuffers{createFramebuffers(mDevice, mSwapChain, mDepthImage, mClearRenderPass)},
+      mCommandBuffers(createCommandBuffers(
+          mDevice, mSwapChain, mDepthImage, models, mClearRenderPass, mClearFramebuffers)),
       mImageAvailableSemaphore(static_cast<vk::Device>(mDevice).createSemaphore({})),
       mRenderFinishedSemaphore(static_cast<vk::Device>(mDevice).createSemaphore({}))
 {
@@ -138,11 +290,11 @@ Renderer::Renderer(
 //    return buffer;
 //}
 
-void Renderer::drawFrame(SwapChain& swapChain)
+void Renderer::drawFrame()
 {
     uint32_t imageIndex = 0;
     static_cast<vk::Device>(mDevice).acquireNextImageKHR(
-        swapChain,
+        mSwapChain,
         std::numeric_limits<uint64_t>::max(),
         mImageAvailableSemaphore,
         nullptr,
@@ -167,7 +319,7 @@ void Renderer::drawFrame(SwapChain& swapChain)
     presentInfo.pWaitSemaphores = &mRenderFinishedSemaphore;
 
     presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &static_cast<vk::SwapchainKHR>(swapChain);
+    presentInfo.pSwapchains = &static_cast<vk::SwapchainKHR>(mSwapChain);
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr;
 

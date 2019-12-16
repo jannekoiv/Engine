@@ -7,9 +7,7 @@ class Device;
 
 class RenderPass {
 public:
-    RenderPass(
-        Device& device,
-        vk::Format swapChainFormat);
+    RenderPass(Device& device, vk::Format swapChainFormat, vk::AttachmentLoadOp loadOp);
 
     ~RenderPass();
 
@@ -18,10 +16,10 @@ public:
         return mRenderPass;
     }
 
-    vk::Format depthAttachmentFormat() const
-    {
-        return mDepthAttachmentFormat;
-    }
+    //vk::Format depthAttachmentFormat() const
+    //{
+    //    return mDepthAttachmentFormat;
+    //}
 private:
     Device& mDevice;
     vk::Format mDepthAttachmentFormat;
