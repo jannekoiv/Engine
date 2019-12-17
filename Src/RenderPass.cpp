@@ -8,7 +8,6 @@
 RenderPass::RenderPass(Device& device, vk::Format swapChainFormat, vk::AttachmentLoadOp loadOp)
     : mDevice(device), mDepthAttachmentFormat(findDepthAttachmentFormat(mDevice))
 {
-
     vk::AttachmentDescription colorAttachment{};
     colorAttachment.format = swapChainFormat;
     colorAttachment.samples = vk::SampleCountFlagBits::e1;

@@ -1,33 +1,34 @@
 #pragma once
 
 #include "../Include/Base.h"
-#include "../Include/RenderPass.h"
 
 class Device;
+class SwapChain;
+class Image;
 
-class Framebuffer {
+class FramebufferSet {
 public:
-    Framebuffer(
-        Device& device,
-        vk::ImageView imageView,
-        vk::ImageView depthImageView,
-        vk::Extent2D swapChainExtent,
-        RenderPass& renderPass);
+    FramebufferSet(
+        Device& device, SwapChain& swapChain, Image& depthImage, vk::AttachmentLoadOp loadOp);
 
-    ~Framebuffer();
+    ~FramebufferSet();
 
-    operator vk::Framebuffer() const
-    {
-        return mFramebuffer;
-    }
-
-    RenderPass& renderPass()
+    vk::RenderPass renderPass()
     {
         return mRenderPass;
     }
 
+    vk::Framebuffer frameBuffer(int index)
+    {
+        return mFramebuffers[index];
+    }
+
+    size_t framebufferCount()
+    {
+        return mFramebuffers.size();
+    }
+
 private:
-    Device& mDevice;
-    RenderPass& mRenderPass;
-    vk::Framebuffer mFramebuffer;
+    vk::RenderPass mRenderPass;
+    std::vector<vk::Framebuffer> mFramebuffers;
 };

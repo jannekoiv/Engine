@@ -1,6 +1,5 @@
 #include "../Include/SwapChain.h"
 #include "../Include/Device.h"
-#include "../Include/RenderPass.h"
 #include <algorithm>
 #include <iostream>
 #include <limits>

@@ -1,17 +1,6 @@
 
 #include "../Include/Material.h"
 
-static std::vector<Framebuffer> createFramebuffers(
-    Device& device, SwapChain& swapChain, Image& depthImage, RenderPass& renderPass)
-{
-    std::vector<Framebuffer> frameBuffers;
-    for (int i = 0; i < swapChain.imageCount(); i++) {
-        frameBuffers.emplace_back(
-            device, swapChain.imageView(i), depthImage.view(), swapChain.extent(), renderPass);
-    }
-    return frameBuffers;
-}
-
 Material::Material(
     Device& device,
     SwapChain& swapChain,
@@ -24,8 +13,7 @@ Material::Material(
     : mBindingDescription{bindingDescription},
       mAttributeDescriptions{attributeDescriptions},
       mDescriptorSetLayout{descriptorSetLayout},
-      mRenderPass{device, swapChain.format(), vk::AttachmentLoadOp::eLoad},
-      mFramebuffers{createFramebuffers(device, swapChain, depthImage, mRenderPass)},
+      mFramebufferSet{device, swapChain, depthImage, vk::AttachmentLoadOp::eLoad},
       mPipeline{
           device,
           mBindingDescription,
@@ -34,6 +22,6 @@ Material::Material(
           vertexShaderFilename,
           fragmentShaderFilename,
           swapChain.extent(),
-          mRenderPass}
+          mFramebufferSet.renderPass()}
 {
 }

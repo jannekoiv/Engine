@@ -6,7 +6,6 @@
 #include "../Include/Framebuffer.h"
 #include "../Include/Image.h"
 #include "../Include/Pipeline.h"
-#include "../Include/RenderPass.h"
 #include "../Include/Sampler.h"
 #include "../Include/SwapChain.h"
 
@@ -22,19 +21,9 @@ public:
         std::string vertexShaderFilename,
         std::string fragmentShaderFilename);
 
-    RenderPass& renderPass()
+    FramebufferSet& framebufferSet()
     {
-        return mRenderPass;
-    }
-
-    Framebuffer& frameBuffer(int index)
-    {
-        return mFramebuffers[index];
-    }
-
-    int frameBufferCount()
-    {
-        return mFramebuffers.size();
+        return mFramebufferSet;
     }
     
     Pipeline& pipeline()
@@ -46,7 +35,6 @@ private:
     vk::VertexInputBindingDescription mBindingDescription;
     std::vector<vk::VertexInputAttributeDescription> mAttributeDescriptions;
     vk::DescriptorSetLayout mDescriptorSetLayout;
-    RenderPass mRenderPass;
-    std::vector<Framebuffer> mFramebuffers;
+    FramebufferSet mFramebufferSet;
     Pipeline mPipeline;
 };

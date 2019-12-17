@@ -4,7 +4,6 @@
 #include "../Include/Framebuffer.h"
 #include "../Include/Image.h"
 #include "../Include/Model.h"
-#include "../Include/RenderPass.h"
 #include "../Include/SwapChain.h"
 #include <fstream>
 #include <iostream>
@@ -30,17 +29,6 @@ void alignedFree(void* data)
     free(data);
 #endif
 }
-
-//static std::vector<Framebuffer> createFramebuffers(
-//    Device& device, SwapChain& swapChain, Image& depthImage, RenderPass& renderPass)
-//{
-//    std::vector<Framebuffer> frameBuffers;
-//    for (int i = 0; i < swapChain.imageCount(); i++) {
-//        frameBuffers.emplace_back(
-//            device, swapChain.imageView(i), depthImage.view(), swapChain.extent(), renderPass);
-//    }
-//    return frameBuffers;
-//}
 
 void clearColor(Device& device, SwapChain& swapChain, int index, vk::CommandBuffer commandBuffer)
 {
@@ -174,8 +162,9 @@ void drawModelsPass(
     std::vector<Model>& models)
 {
     vk::RenderPassBeginInfo renderPassInfo;
-    renderPassInfo.renderPass = models.front().mMaterial.renderPass();
-    renderPassInfo.framebuffer = models.front().mMaterial.frameBuffer(framebufferIndex);
+    renderPassInfo.renderPass = models.front().mMaterial.framebufferSet().renderPass();
+    renderPassInfo.framebuffer =
+        models.front().mMaterial.framebufferSet().frameBuffer(framebufferIndex);
     renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
     renderPassInfo.renderArea.extent = swapChainExtent;
 
@@ -204,8 +193,7 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
     SwapChain& swapChain,
     Image& depthImage,
     std::vector<Model>& models,
-    RenderPass& clearRenderPass,
-    std::vector<Framebuffer>& clearFrameBuffers)
+    FramebufferSet& clearFramebufferSet)
 {
     vk::CommandBufferAllocateInfo commandBufferInfo(
         device.commandPool(), vk::CommandBufferLevel::ePrimary, swapChain.imageCount());
@@ -221,8 +209,8 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
 
         clearPass(
             commandBuffer,
-            clearRenderPass,
-            clearFrameBuffers[framebufferIndex],
+            clearFramebufferSet.renderPass(),
+            clearFramebufferSet.frameBuffer(framebufferIndex),
             swapChain.extent());
 
         drawModelsPass(commandBuffer, framebufferIndex, swapChain.extent(), models);
@@ -233,26 +221,14 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
     return commandBuffers;
 }
 
-static std::vector<Framebuffer> createFramebuffers(
-    Device& device, SwapChain& swapChain, Image& depthImage, RenderPass& renderPass)
-{
-    std::vector<Framebuffer> frameBuffers;
-    for (int i = 0; i < swapChain.imageCount(); i++) {
-        frameBuffers.emplace_back(
-            device, swapChain.imageView(i), depthImage.view(), swapChain.extent(), renderPass);
-    }
-    return frameBuffers;
-}
-
 Renderer::Renderer(
     Device& device, SwapChain& swapChain, Image& depthImage, std::vector<Model>& models)
     : mDevice(device),
       mSwapChain(swapChain),
       mDepthImage(depthImage),
-      mClearRenderPass{mDevice, swapChain.format(), vk::AttachmentLoadOp::eClear},
-      mClearFramebuffers{createFramebuffers(mDevice, mSwapChain, mDepthImage, mClearRenderPass)},
-      mCommandBuffers(createCommandBuffers(
-          mDevice, mSwapChain, mDepthImage, models, mClearRenderPass, mClearFramebuffers)),
+      mClearFramebufferSet{mDevice, mSwapChain, mDepthImage, vk::AttachmentLoadOp::eClear},
+      mCommandBuffers(
+          createCommandBuffers(mDevice, mSwapChain, mDepthImage, models, mClearFramebufferSet)),
       mImageAvailableSemaphore(static_cast<vk::Device>(mDevice).createSemaphore({})),
       mRenderFinishedSemaphore(static_cast<vk::Device>(mDevice).createSemaphore({}))
 {

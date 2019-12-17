@@ -1,6 +1,6 @@
 
 #include "../Include/Base.h"
-#include "../Include/RenderPass.h"
+#include "../Include/Framebuffer.h"
 
 struct UboWorldView {
     glm::mat4* worldView = nullptr;
@@ -8,7 +8,7 @@ struct UboWorldView {
 
 class Device;
 class Model;
-class Framebuffer;
+class FramebufferSet;
 class SwapChain;
 class Image;
 
@@ -22,8 +22,7 @@ private:
     Device& mDevice;
     SwapChain& mSwapChain;
     Image& mDepthImage;
-    RenderPass mClearRenderPass;
-    std::vector<Framebuffer> mClearFramebuffers;
+    FramebufferSet mClearFramebufferSet;
     std::vector<vk::CommandBuffer> mCommandBuffers;
     vk::Semaphore mImageAvailableSemaphore;
     vk::Semaphore mRenderFinishedSemaphore;
