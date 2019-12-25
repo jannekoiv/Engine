@@ -19,7 +19,8 @@ public:
         std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
         vk::DescriptorSetLayout descriptorSetLayout,
         std::string vertexShaderFilename,
-        std::string fragmentShaderFilename);
+        std::string fragmentShaderFilename,
+        std::string textureFilename);
 
     FramebufferSet& framebufferSet()
     {
@@ -37,4 +38,5 @@ private:
     vk::DescriptorSetLayout mDescriptorSetLayout;
     FramebufferSet mFramebufferSet;
     Pipeline mPipeline;
+    Image mTexture;
 };

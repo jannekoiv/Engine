@@ -67,7 +67,6 @@ public:
         SwapChain& swapChain,
         Image& depthImage,
         glm::mat4 worldMatrix,
-        Image texture,
         std::vector<Vertex> vertices,
         std::vector<uint32_t> indices);
 
@@ -93,18 +92,13 @@ public:
 
     void updateUniformBuffer();
 
-    DescriptorSet createDescriptorSet(
-        vk::Buffer uniformBuffer, vk::ImageView textureView, vk::Sampler textureSampler);
-
     //private:
     Device& mDevice;
     glm::mat4 mWorldMatrix;
-    Image mTexture;
     Buffer mVertexBuffer;
     Buffer mIndexBuffer;
     int mIndexCount;
     Buffer mUniformBuffer;
-    Sampler mTextureSampler;
     UniformBufferObject mUniformBufferObject;
     DescriptorManager& mDescriptorManager;
     DescriptorSet mDescriptorSet;
