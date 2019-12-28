@@ -24,18 +24,12 @@ public:
         return mPipeline;
     }
 
-    Device& device() const
-    {
-        return mDevice;
-    }
-
     vk::PipelineLayout layout() const
     {
         return mPipelineLayout;
     }
 
 private:
-    Device& mDevice;
     vk::PipelineLayout mPipelineLayout;
     vk::Pipeline mPipeline;
 };

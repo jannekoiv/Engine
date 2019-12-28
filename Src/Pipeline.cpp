@@ -1,12 +1,23 @@
 
 #include "../Include/Pipeline.h"
-#include "../Include/Device.h"
-#include "../Include/ShaderModule.h"
 #include "../Include/Base.h"
-#include <vulkan/vulkan.hpp>
-#include <iostream>
+#include "../Include/Device.h"
 #include <fstream>
+#include <iostream>
 #include <sstream>
+#include <vulkan/vulkan.hpp>
+
+vk::ShaderModule createShaderModule(vk::Device device, std::string filename)
+{
+    auto code = readFile(filename);
+
+    vk::ShaderModuleCreateInfo createInfo;
+    createInfo.codeSize = code.size();
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+    vk::ShaderModule shaderModule = device.createShaderModule(createInfo, nullptr);
+    return shaderModule;
+}
 
 Pipeline::Pipeline(
     Device& device,
@@ -17,10 +28,9 @@ Pipeline::Pipeline(
     std::string fragmentShaderFilename,
     const vk::Extent2D& swapChainExtent,
     const vk::RenderPass& renderPass)
-    : mDevice(device)
 {
-    ShaderModule vertexShaderModule(mDevice, vertexShaderFilename);
-    ShaderModule fragmentShaderModule(mDevice, fragmentShaderFilename);
+    auto vertexShaderModule = createShaderModule(device, vertexShaderFilename);
+    auto fragmentShaderModule = createShaderModule(device, fragmentShaderFilename);
 
     std::cout << "shaders ok\n";
 
@@ -104,7 +114,7 @@ Pipeline::Pipeline(
     pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
     mPipelineLayout =
-        static_cast<vk::Device>(mDevice).createPipelineLayout(pipelineLayoutInfo, nullptr);
+        static_cast<vk::Device>(device).createPipelineLayout(pipelineLayoutInfo, nullptr);
 
     vk::PipelineDepthStencilStateCreateInfo depthStencil;
     depthStencil.depthTestEnable = true;
@@ -135,5 +145,5 @@ Pipeline::Pipeline(
     pipelineInfo.basePipelineIndex = -1;
 
     mPipeline =
-        static_cast<vk::Device>(mDevice).createGraphicsPipeline(nullptr, pipelineInfo, nullptr);
+        static_cast<vk::Device>(device).createGraphicsPipeline(nullptr, pipelineInfo, nullptr);
 }
