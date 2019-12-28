@@ -6,18 +6,19 @@
 #include "../Include/Framebuffer.h"
 #include "../Include/Image.h"
 #include "../Include/Pipeline.h"
-#include "../Include/Sampler.h"
 #include "../Include/SwapChain.h"
 
 class Material {
 public:
     Material(
         Device& device,
+        DescriptorManager& descriptorManager,
+        Buffer& uniformBuffer,
+        vk::DeviceSize uniformBufferSize,
         SwapChain& swapChain,
         Image& depthImage,
         vk::VertexInputBindingDescription bindingDescription,
         std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
-        vk::DescriptorSetLayout descriptorSetLayout,
         std::string vertexShaderFilename,
         std::string fragmentShaderFilename,
         std::string textureFilename);
@@ -32,11 +33,19 @@ public:
         return mPipeline;
     }
 
+    Image& texture()
+    {
+        return mTexture;
+    }
+
+    DescriptorSet& descriptorSet()
+    {
+        return mDescriptorSet;
+    }
+
 private:
-    vk::VertexInputBindingDescription mBindingDescription;
-    std::vector<vk::VertexInputAttributeDescription> mAttributeDescriptions;
-    vk::DescriptorSetLayout mDescriptorSetLayout;
+    Image mTexture;
+    DescriptorSet mDescriptorSet;
     FramebufferSet mFramebufferSet;
     Pipeline mPipeline;
-    Image mTexture;
 };

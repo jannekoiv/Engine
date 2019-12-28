@@ -6,7 +6,6 @@
 #include "../Include/Image.h"
 #include "../Include/Material.h"
 #include "../Include/Pipeline.h"
-#include "../Include/Sampler.h"
 
 class Device;
 
@@ -80,10 +79,10 @@ public:
         return mIndexBuffer;
     }
 
-    vk::DescriptorSet descriptorSet()
-    {
-        return mDescriptorSet;
-    }
+    //vk::DescriptorSet descriptorSet()
+    //{
+    //    return mDescriptorSet;
+    //}
 
     int indexCount()
     {
@@ -100,8 +99,8 @@ public:
     int mIndexCount;
     Buffer mUniformBuffer;
     UniformBufferObject mUniformBufferObject;
-    DescriptorManager& mDescriptorManager;
-    DescriptorSet mDescriptorSet;
+    //DescriptorManager& mDescriptorManager;
+    //DescriptorSet mDescriptorSet;
     Material mMaterial;
 };
 

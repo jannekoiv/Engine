@@ -179,7 +179,7 @@ void drawModelsPass(
             vk::PipelineBindPoint::eGraphics,
             model.mMaterial.pipeline().layout(),
             0,
-            model.descriptorSet(),
+            {model.mMaterial.descriptorSet()},
             nullptr);
 
         commandBuffer.drawIndexed(static_cast<uint32_t>(model.indexCount()), 1, 0, 0, 0);

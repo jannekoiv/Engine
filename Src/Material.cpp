@@ -55,29 +55,75 @@ Image createTexture(Device& device, std::string filename)
     return image;
 }
 
+//DescriptorSet Model::createDescriptorSet(
+//    -vk::Buffer uniformBuffer, vk::ImageView textureView, vk::Sampler textureSampler) -
+//{
+//    -std::vector<vk::DescriptorSetLayoutBinding> bindings = {
+//        -{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
+//        -{1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
+//    --DescriptorSet descriptorSet = mDescriptorManager.createDescriptorSet(bindings);
+//    --vk::DescriptorBufferInfo bufferInfo;
+//    -bufferInfo.buffer = uniformBuffer;
+//    -bufferInfo.offset = 0;
+//    -bufferInfo.range = sizeof(UniformBufferObject);
+//    --vk::DescriptorImageInfo imageInfo;
+//    -imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+//    -imageInfo.imageView = textureView;
+//    -imageInfo.sampler = textureSampler;
+//    --descriptorSet.writeDescriptors({{0, 0, 1, &bufferInfo}, {1, 0, 1, &imageInfo}});
+//    --return descriptorSet;
+//    -
+//}
+
+DescriptorSet createDescriptorSet(
+    DescriptorManager& descriptorManager,
+    Material& material,
+    Buffer& uniformBuffer,
+    vk::DeviceSize uniformBufferSize)
+{
+    std::vector<vk::DescriptorSetLayoutBinding> bindings = {
+        {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}};
+    DescriptorSet descriptorSet = descriptorManager.createDescriptorSet(bindings);
+
+    vk::DescriptorBufferInfo bufferInfo;
+    bufferInfo.buffer = uniformBuffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = uniformBufferSize;
+
+    //vk::DescriptorImageInfo imageInfo;
+    //imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+    //imageInfo.imageView = textureView;
+    //imageInfo.sampler = textureSampler;
+
+    //descriptorSet.writeDescriptors({{0, 0, 1, &bufferInfo}, {1, 0, 1, &imageInfo}});
+    descriptorSet.writeDescriptors({{0, 0, 1, &bufferInfo}});
+    return descriptorSet;
+}
+
 Material::Material(
     Device& device,
+    DescriptorManager& descriptorManager,
+    Buffer& uniformBuffer,
+    vk::DeviceSize uniformBufferSize,
     SwapChain& swapChain,
     Image& depthImage,
     vk::VertexInputBindingDescription bindingDescription,
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
-    vk::DescriptorSetLayout descriptorSetLayout,
     std::string vertexShaderFilename,
     std::string fragmentShaderFilename,
     std::string textureFilename)
-    : mBindingDescription{bindingDescription},
-      mAttributeDescriptions{attributeDescriptions},
-      mDescriptorSetLayout{descriptorSetLayout},
+    : mTexture{createTexture(device, textureFilename)},
+      mDescriptorSet{
+          createDescriptorSet(descriptorManager, *this, uniformBuffer, uniformBufferSize)},
       mFramebufferSet{device, swapChain, depthImage, vk::AttachmentLoadOp::eLoad},
       mPipeline{
           device,
-          mBindingDescription,
-          mAttributeDescriptions,
-          mDescriptorSetLayout,
+          bindingDescription,
+          attributeDescriptions,
+          mDescriptorSet.layout(),
           vertexShaderFilename,
           fragmentShaderFilename,
           swapChain.extent(),
-          mFramebufferSet.renderPass()},
-      mTexture{createTexture(device, textureFilename)}
+          mFramebufferSet.renderPass()}
 {
 }
