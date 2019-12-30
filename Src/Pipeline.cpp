@@ -146,4 +146,9 @@ Pipeline::Pipeline(
 
     mPipeline =
         static_cast<vk::Device>(device).createGraphicsPipeline(nullptr, pipelineInfo, nullptr);
+
+    static_cast<vk::Device>(device).destroyShaderModule(vertexShaderModule);
+    static_cast<vk::Device>(device).destroyShaderModule(fragmentShaderModule);
 }
+
+

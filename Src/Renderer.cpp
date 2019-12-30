@@ -2,7 +2,7 @@
 #include "../Include/Renderer.h"
 #include "../Include/Device.h"
 #include "../Include/FramebufferSet.h"
-#include "../Include/Image.h"
+#include "../Include/Texture.h"
 #include "../Include/Model.h"
 #include "../Include/SwapChain.h"
 #include <fstream>
@@ -82,7 +82,7 @@ void clearColor(Device& device, SwapChain& swapChain, int index, vk::CommandBuff
         {clearToPresentBarrier});
 }
 
-void clearDepthStencil(Device& device, Image& depthImage, vk::CommandBuffer commandBuffer)
+void clearDepthStencil(Device& device, Texture& depthImage, vk::CommandBuffer commandBuffer)
 {
     vk::ClearDepthStencilValue clearDepthStencil{1.0f, 0};
 
@@ -191,7 +191,7 @@ void drawModelsPass(
 std::vector<vk::CommandBuffer> createCommandBuffers(
     Device& device,
     SwapChain& swapChain,
-    Image& depthImage,
+    Texture& depthImage,
     std::vector<Model>& models,
     FramebufferSet& clearFramebufferSet)
 {
@@ -222,7 +222,7 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
 }
 
 Renderer::Renderer(
-    Device& device, SwapChain& swapChain, Image& depthImage, std::vector<Model>& models)
+    Device& device, SwapChain& swapChain, Texture& depthImage, std::vector<Model>& models)
     : mDevice(device),
       mSwapChain(swapChain),
       mDepthImage(depthImage),

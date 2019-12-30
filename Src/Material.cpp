@@ -5,7 +5,7 @@
 #include "../Include/Device.h"
 #include "stb_image.h"
 
-Image createTexture(Device& device, std::string filename)
+Texture createTexture(Device& device, std::string filename)
 {
     const int bytesPerPixel = 4;
     int width = 0;
@@ -31,14 +31,15 @@ Image createTexture(Device& device, std::string filename)
     static_cast<vk::Device>(device).unmapMemory(stagingBuffer.memory());
     stbi_image_free(pixels);
 
-    Image image(
+    Texture image{
         device,
         vk::Extent3D(width, height, 1),
         vk::Format::eR8G8B8A8Unorm,
         vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
             vk::ImageUsageFlagBits::eSampled,
-        vk::MemoryPropertyFlagBits::eDeviceLocal);
+        vk::MemoryPropertyFlagBits::eDeviceLocal,
+        vk::SamplerAddressMode::eClampToEdge};
 
     image.transitionLayout(
         vk::Format::eR8G8B8A8Unorm,
@@ -55,26 +56,6 @@ Image createTexture(Device& device, std::string filename)
     return image;
 }
 
-//DescriptorSet Model::createDescriptorSet(
-//    -vk::Buffer uniformBuffer, vk::ImageView textureView, vk::Sampler textureSampler) -
-//{
-//    -std::vector<vk::DescriptorSetLayoutBinding> bindings = {
-//        -{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
-//        -{1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
-//    --DescriptorSet descriptorSet = mDescriptorManager.createDescriptorSet(bindings);
-//    --vk::DescriptorBufferInfo bufferInfo;
-//    -bufferInfo.buffer = uniformBuffer;
-//    -bufferInfo.offset = 0;
-//    -bufferInfo.range = sizeof(UniformBufferObject);
-//    --vk::DescriptorImageInfo imageInfo;
-//    -imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-//    -imageInfo.imageView = textureView;
-//    -imageInfo.sampler = textureSampler;
-//    --descriptorSet.writeDescriptors({{0, 0, 1, &bufferInfo}, {1, 0, 1, &imageInfo}});
-//    --return descriptorSet;
-//    -
-//}
-
 DescriptorSet createDescriptorSet(
     DescriptorManager& descriptorManager,
     Material& material,
@@ -82,7 +63,9 @@ DescriptorSet createDescriptorSet(
     vk::DeviceSize uniformBufferSize)
 {
     std::vector<vk::DescriptorSetLayoutBinding> bindings = {
-        {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}};
+        {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
+        {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
+
     DescriptorSet descriptorSet = descriptorManager.createDescriptorSet(bindings);
 
     vk::DescriptorBufferInfo bufferInfo;
@@ -90,13 +73,13 @@ DescriptorSet createDescriptorSet(
     bufferInfo.offset = 0;
     bufferInfo.range = uniformBufferSize;
 
-    //vk::DescriptorImageInfo imageInfo;
-    //imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-    //imageInfo.imageView = textureView;
-    //imageInfo.sampler = textureSampler;
+    vk::DescriptorImageInfo imageInfo;
+    imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+    imageInfo.imageView = material.texture().view();
+    imageInfo.sampler = material.texture().sampler();
 
-    //descriptorSet.writeDescriptors({{0, 0, 1, &bufferInfo}, {1, 0, 1, &imageInfo}});
-    descriptorSet.writeDescriptors({{0, 0, 1, &bufferInfo}});
+    descriptorSet.writeDescriptors({{0, 0, 1, &bufferInfo}, {1, 0, 1, &imageInfo}});
+
     return descriptorSet;
 }
 
@@ -106,7 +89,7 @@ Material::Material(
     Buffer& uniformBuffer,
     vk::DeviceSize uniformBufferSize,
     SwapChain& swapChain,
-    Image& depthImage,
+    Texture& depthImage,
     vk::VertexInputBindingDescription bindingDescription,
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
     std::string vertexShaderFilename,

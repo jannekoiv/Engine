@@ -2,7 +2,7 @@
 #include "../Include/Base.h"
 #include "../Include/Buffer.h"
 #include "../Include/Device.h"
-#include "../Include/Image.h"
+#include "../Include/Texture.h"
 #include "../Include/Semaphore.h"
 #include "../Include/SwapChain.h"
 

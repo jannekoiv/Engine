@@ -30,7 +30,7 @@ Model createModelFromFile(
     Device& device,
     DescriptorManager& descriptorManager,
     SwapChain& swapChain,
-    Image& depthImage,
+    Texture& depthImage,
     std::string filename)
 {
     std::ifstream file(filename, std::ios::in | std::ios::binary);
@@ -159,7 +159,7 @@ Model::Model(
     Device& device,
     DescriptorManager& descriptorManager,
     SwapChain& swapChain,
-    Image& depthImage,
+    Texture& depthImage,
     glm::mat4 worldMatrix,
     std::vector<Vertex> vertices,
     std::vector<uint32_t> indices)

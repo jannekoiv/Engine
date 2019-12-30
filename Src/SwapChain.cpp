@@ -34,9 +34,9 @@ static vk::ImageView createImageView(vk::Device device, vk::Image image, vk::For
     return imageView;
 }
 
-SwapChain::SwapChain(Device& device, const vk::Extent2D& extent) : mDevice(device)
+SwapChain::SwapChain(Device& device, const vk::Extent2D& extent)
 {
-    SwapChainSupportDetails swapChainSupportDetails(mDevice.surface(), mDevice.physicalDevice());
+    SwapChainSupportDetails swapChainSupportDetails(device.surface(), device.physicalDevice());
     auto surfaceFormat = chooseSwapSurfaceFormat(swapChainSupportDetails.formats);
     mFormat = surfaceFormat.format;
     mExtent = chooseSwapExtent(swapChainSupportDetails.capabilities, extent);
@@ -44,7 +44,7 @@ SwapChain::SwapChain(Device& device, const vk::Extent2D& extent) : mDevice(devic
     auto imageCount = chooseSwapImageCount(swapChainSupportDetails.capabilities);
 
     vk::SwapchainCreateInfoKHR createInfo;
-    createInfo.surface = mDevice.surface();
+    createInfo.surface = device.surface();
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -78,7 +78,7 @@ SwapChain::SwapChain(Device& device, const vk::Extent2D& extent) : mDevice(devic
 
     for (size_t i = 0; i < images.size(); i++) {
         mImages.push_back(images[i]);
-        mImageViews.push_back(createImageView(mDevice, images[i], mFormat));
+        mImageViews.push_back(createImageView(device, images[i], mFormat));
     }
 }
 

@@ -4,12 +4,12 @@
 
 class Device;
 class SwapChain;
-class Image;
+class Texture;
 
 class FramebufferSet {
 public:
     FramebufferSet(
-        Device& device, SwapChain& swapChain, Image& depthImage, vk::AttachmentLoadOp loadOp);
+        Device& device, SwapChain& swapChain, Texture& depthImage, vk::AttachmentLoadOp loadOp);
 
     ~FramebufferSet();
 

@@ -3,7 +3,7 @@
 #include "../Include/Base.h"
 
 class Device;
-class Image;
+class Texture;
 
 class Buffer {
 public:
@@ -39,8 +39,8 @@ public:
 
     void copy(Buffer& dstBuffer, vk::DeviceSize size);
     void copy(Buffer& dstBuffer);
-    void copyToImage(Image& dstImage, vk::Offset3D offset, vk::Extent3D extent);
-    void copyToImage(Image& dstImage, vk::Offset3D offset = vk::Offset3D(0, 0, 0));
+    void copyToImage(Texture& dstImage, vk::Offset3D offset, vk::Extent3D extent);
+    void copyToImage(Texture& dstImage, vk::Offset3D offset = vk::Offset3D(0, 0, 0));
 
 private:
     Device& mDevice;

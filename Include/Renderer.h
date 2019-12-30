@@ -10,18 +10,18 @@ class Device;
 class Model;
 class FramebufferSet;
 class SwapChain;
-class Image;
+class Texture;
 
 class Renderer {
 public:
-    Renderer(Device& device, SwapChain& swapChain, Image& depthImage, std::vector<Model>& models);
+    Renderer(Device& device, SwapChain& swapChain, Texture& depthImage, std::vector<Model>& models);
 
     void drawFrame();
 
 private:
     Device& mDevice;
     SwapChain& mSwapChain;
-    Image& mDepthImage;
+    Texture& mDepthImage;
     FramebufferSet mClearFramebufferSet;
     std::vector<vk::CommandBuffer> mCommandBuffers;
     vk::Semaphore mImageAvailableSemaphore;

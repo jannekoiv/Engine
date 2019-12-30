@@ -3,7 +3,7 @@
 #include "../Include/Base.h"
 #include "../Include/Buffer.h"
 #include "../Include/DescriptorManager.h"
-#include "../Include/Image.h"
+#include "../Include/Texture.h"
 #include "../Include/Material.h"
 #include "../Include/Pipeline.h"
 
@@ -64,7 +64,7 @@ public:
         Device& device,
         DescriptorManager& descriptorManager,
         SwapChain& swapChain,
-        Image& depthImage,
+        Texture& depthImage,
         glm::mat4 worldMatrix,
         std::vector<Vertex> vertices,
         std::vector<uint32_t> indices);
@@ -108,5 +108,5 @@ Model createModelFromFile(
     Device& device,
     DescriptorManager& descriptorManager,
     SwapChain& swapChain,
-    Image& depthImage,
+    Texture& depthImage,
     std::string filename);

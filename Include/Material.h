@@ -4,7 +4,7 @@
 #include "../Include/Buffer.h"
 #include "../Include/DescriptorManager.h"
 #include "../Include/FramebufferSet.h"
-#include "../Include/Image.h"
+#include "../Include/Texture.h"
 #include "../Include/Pipeline.h"
 #include "../Include/SwapChain.h"
 
@@ -16,7 +16,7 @@ public:
         Buffer& uniformBuffer,
         vk::DeviceSize uniformBufferSize,
         SwapChain& swapChain,
-        Image& depthImage,
+        Texture& depthImage,
         vk::VertexInputBindingDescription bindingDescription,
         std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
         std::string vertexShaderFilename,
@@ -33,7 +33,7 @@ public:
         return mPipeline;
     }
 
-    Image& texture()
+    Texture& texture()
     {
         return mTexture;
     }
@@ -44,7 +44,7 @@ public:
     }
 
 private:
-    Image mTexture;
+    Texture mTexture;
     DescriptorSet mDescriptorSet;
     FramebufferSet mFramebufferSet;
     Pipeline mPipeline;

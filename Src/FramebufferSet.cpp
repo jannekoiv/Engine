@@ -2,7 +2,7 @@
 #include "../Include/FramebufferSet.h"
 #include "../Include/Base.h"
 #include "../Include/Device.h"
-#include "../Include/Image.h"
+#include "../Include/Texture.h"
 #include "../Include/SwapChain.h"
 #include <iostream>
 #include <vulkan/vulkan.hpp>
@@ -70,7 +70,7 @@ vk::RenderPass createRenderPass(Device& device, SwapChain& swapChain, vk::Attach
 }
 
 std::vector<vk::Framebuffer> createFramebuffers(
-    Device& device, SwapChain& swapChain, Image& depthImage, vk::RenderPass renderPass)
+    Device& device, SwapChain& swapChain, Texture& depthImage, vk::RenderPass renderPass)
 {
     std::vector<vk::Framebuffer> framebuffers(swapChain.imageCount());
 
@@ -94,7 +94,7 @@ std::vector<vk::Framebuffer> createFramebuffers(
 }
 
 FramebufferSet::FramebufferSet(
-    Device& device, SwapChain& swapChain, Image& depthImage, vk::AttachmentLoadOp loadOp)
+    Device& device, SwapChain& swapChain, Texture& depthImage, vk::AttachmentLoadOp loadOp)
     : mRenderPass{createRenderPass(device, swapChain, loadOp)},
       mFramebuffers{createFramebuffers(device, swapChain, depthImage, mRenderPass)}
 {

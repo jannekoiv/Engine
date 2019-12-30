@@ -1,7 +1,7 @@
 #include "../Include/Buffer.h"
 #include "../Include/Base.h"
 #include "../Include/Device.h"
-#include "../Include/Image.h"
+#include "../Include/Texture.h"
 #include <iostream>
 #include <vulkan/vulkan.hpp>
 
@@ -54,7 +54,7 @@ void Buffer::copy(Buffer& dstBuffer)
     copy(dstBuffer, dstBuffer.size());
 }
 
-void Buffer::copyToImage(Image& dstImage, vk::Offset3D offset, vk::Extent3D extent)
+void Buffer::copyToImage(Texture& dstImage, vk::Offset3D offset, vk::Extent3D extent)
 {
     vk::CommandBuffer commandBuffer = mDevice.createAndBeginCommandBuffer();
 
@@ -75,7 +75,7 @@ void Buffer::copyToImage(Image& dstImage, vk::Offset3D offset, vk::Extent3D exte
     mDevice.flushAndFreeCommandBuffer(commandBuffer);
 }
 
-void Buffer::copyToImage(Image& dstImage, vk::Offset3D offset)
+void Buffer::copyToImage(Texture& dstImage, vk::Offset3D offset)
 {
     copyToImage(dstImage, offset, dstImage.extent());
 }

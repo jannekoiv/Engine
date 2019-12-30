@@ -42,7 +42,6 @@ public:
     }
 
 private:
-    Device& mDevice;
     vk::SwapchainKHR mSwapChain;
     std::vector<vk::Image> mImages;
     std::vector<vk::ImageView> mImageViews;

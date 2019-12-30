@@ -115,13 +115,14 @@ int main()
 
     SwapChain swapChain{device, vk::Extent2D{initInfo.width, initInfo.height}};
 
-    Image depthImage{
+    Texture depthImage{
         device,
         vk::Extent3D(swapChain.extent()),
         findDepthAttachmentFormat(device),
         vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferDst,
-        vk::MemoryPropertyFlagBits::eDeviceLocal};
+        vk::MemoryPropertyFlagBits::eDeviceLocal,
+        vk::SamplerAddressMode::eClampToEdge};
 
 
     DescriptorManager descriptorManager{device};

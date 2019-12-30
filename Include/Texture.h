@@ -4,17 +4,18 @@
 
 class Device;
 
-class Image {
+class Texture {
 public:
-    Image(
+    Texture(
         Device& device,
         vk::Extent3D extent,
         vk::Format format,
         vk::ImageTiling tiling,
         vk::ImageUsageFlags usage,
-        vk::MemoryPropertyFlags memoryProperties);
+        vk::MemoryPropertyFlags memoryProperties,
+        vk::SamplerAddressMode addressMode);
 
-    ~Image();
+    ~Texture();
 
     operator vk::Image() const
     {
@@ -46,6 +47,11 @@ public:
         return mView;
     }
 
+    vk::Sampler sampler() const
+    {
+        return mSampler;
+    }
+
     void transitionLayout(
         vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
 
@@ -56,4 +62,5 @@ private:
     vk::Image mImage;
     vk::DeviceMemory mMemory;
     vk::ImageView mView;
+    vk::Sampler mSampler;
 };

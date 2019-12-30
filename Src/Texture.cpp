@@ -1,4 +1,4 @@
-#include "../Include/Image.h"
+#include "../Include/Texture.h"
 #include "../Include/Base.h"
 #include "../Include/Device.h"
 #include <vulkan/vulkan.hpp>
@@ -82,29 +82,59 @@ vk::ImageView createImageView(vk::Device device, vk::Image image, vk::Format for
     return imageView;
 }
 
-Image::Image(
+vk::Sampler createSampler(vk::Device device, vk::SamplerAddressMode addressMode)
+{
+    vk::SamplerCreateInfo samplerInfo{};
+
+    samplerInfo.magFilter = vk::Filter::eLinear;
+    samplerInfo.minFilter = vk::Filter::eLinear;
+
+    samplerInfo.addressModeU = addressMode;
+    samplerInfo.addressModeV = addressMode;
+    samplerInfo.addressModeW = addressMode;
+
+    samplerInfo.anisotropyEnable = true;
+    samplerInfo.maxAnisotropy = 16;
+    samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
+    samplerInfo.unnormalizedCoordinates = false;
+
+    samplerInfo.compareEnable = false;
+    samplerInfo.compareOp = vk::CompareOp::eAlways;
+
+    samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+
+    vk::Sampler sampler = device.createSampler(samplerInfo);
+    return sampler;
+}
+
+Texture::Texture(
     Device& device,
     vk::Extent3D extent,
     vk::Format format,
     vk::ImageTiling tiling,
     vk::ImageUsageFlags usage,
-    vk::MemoryPropertyFlags memoryProperties)
-    : mDevice(device),
-      mExtent(extent),
-      mFormat(format),
-      mImage(createImage(mDevice, mExtent, mFormat, tiling, usage)),
-      mMemory(allocateAndBindMemory(mDevice, mImage, memoryProperties)),
-      mView(createImageView(mDevice, mImage, mFormat))
+    vk::MemoryPropertyFlags memoryProperties,
+    vk::SamplerAddressMode addressMode)
+    : mDevice{device},
+      mExtent{extent},
+      mFormat{format},
+      mImage{createImage(mDevice, mExtent, mFormat, tiling, usage)},
+      mMemory{allocateAndBindMemory(mDevice, mImage, memoryProperties)},
+      mView{createImageView(mDevice, mImage, mFormat)},
+      mSampler{createSampler(device, addressMode)}
 {
 }
 
-Image::~Image()
+Texture::~Texture()
 {
     //    static_cast<vk::Device>(mDevice).freeMemory(mMemory);
     //    static_cast<vk::Device>(mDevice).destroyImage(mImage);
 }
 
-void Image::transitionLayout(
+void Texture::transitionLayout(
     vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
 {
     vk::CommandBuffer commandBuffer = mDevice.createAndBeginCommandBuffer();
