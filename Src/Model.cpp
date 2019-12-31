@@ -71,8 +71,7 @@ Model createModelFromFile(
 
     file.close();
 
-    return Model(
-        device, descriptorManager, swapChain, depthImage, worldMatrix, vertices, indices);
+    return Model(device, descriptorManager, swapChain, depthImage, worldMatrix, vertices, indices);
 }
 
 Buffer createUniformBuffer(Device& device)
@@ -182,8 +181,15 @@ Model::Model(
           Vertex::getAttributeDescriptions(),
           "d:/Shaders/vert.spv",
           "d:/Shaders/frag.spv",
-          "d:/texture3.jpg"}
+          "d:/texture3.jpg"},
+      mPipeline{
+          device,
+          mMaterial,
+          Vertex::getBindingDescription(),
+          Vertex::getAttributeDescriptions(),
+          swapChain.extent()}
 {
+    //std::cout << "Model constructor\n";
 }
 
 void Model::updateUniformBuffer()

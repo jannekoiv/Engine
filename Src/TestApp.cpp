@@ -47,7 +47,7 @@ void mainLoop(
     while (!glfwWindowShouldClose(window) && running) {
         glfwPollEvents();
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < models.size(); i++) {
             Model& model = models[i];
             auto& worldView = model.mUniformBufferObject.worldView;
             auto& proj = model.mUniformBufferObject.proj;

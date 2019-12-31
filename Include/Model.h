@@ -3,9 +3,9 @@
 #include "../Include/Base.h"
 #include "../Include/Buffer.h"
 #include "../Include/DescriptorManager.h"
-#include "../Include/Texture.h"
 #include "../Include/Material.h"
 #include "../Include/Pipeline.h"
+#include "../Include/Texture.h"
 
 class Device;
 
@@ -79,6 +79,16 @@ public:
         return mIndexBuffer;
     }
 
+    Material& material()
+    {
+        return mMaterial;
+    }
+
+    Pipeline& pipeline()
+    {
+        return mPipeline;
+    }
+
     //vk::DescriptorSet descriptorSet()
     //{
     //    return mDescriptorSet;
@@ -102,6 +112,7 @@ public:
     //DescriptorManager& mDescriptorManager;
     //DescriptorSet mDescriptorSet;
     Material mMaterial;
+    Pipeline mPipeline;
 };
 
 Model createModelFromFile(

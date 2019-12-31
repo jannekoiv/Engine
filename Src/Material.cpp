@@ -2,6 +2,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "../Include/Material.h"
+#include "../Include/Base.h"
 #include "../Include/Device.h"
 #include "stb_image.h"
 
@@ -83,6 +84,18 @@ DescriptorSet createDescriptorSet(
     return descriptorSet;
 }
 
+vk::ShaderModule createShaderModule(vk::Device device, std::string filename)
+{
+    auto code = readFile(filename);
+
+    vk::ShaderModuleCreateInfo createInfo;
+    createInfo.codeSize = code.size();
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+    vk::ShaderModule shaderModule = device.createShaderModule(createInfo, nullptr);
+    return shaderModule;
+}
+
 Material::Material(
     Device& device,
     DescriptorManager& descriptorManager,
@@ -95,18 +108,19 @@ Material::Material(
     std::string vertexShaderFilename,
     std::string fragmentShaderFilename,
     std::string textureFilename)
-    : mTexture{createTexture(device, textureFilename)},
+    : mDevice{device},
+      mTexture{createTexture(device, textureFilename)},
       mDescriptorSet{
           createDescriptorSet(descriptorManager, *this, uniformBuffer, uniformBufferSize)},
       mFramebufferSet{device, swapChain, depthImage, vk::AttachmentLoadOp::eLoad},
-      mPipeline{
-          device,
-          bindingDescription,
-          attributeDescriptions,
-          mDescriptorSet.layout(),
-          vertexShaderFilename,
-          fragmentShaderFilename,
-          swapChain.extent(),
-          mFramebufferSet.renderPass()}
+      mVertexShaderModule{createShaderModule(device, vertexShaderFilename)},
+      mFragmentShaderModule{createShaderModule(device, fragmentShaderFilename)}
 {
+    //std::cout << "Material constructor\n";
+}
+
+Material::~Material()
+{
+    //std::cout << "Material destructor\n";
+    static_cast<vk::Device>(mDevice).destroyShaderModule(mVertexShaderModule);
 }

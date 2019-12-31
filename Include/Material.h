@@ -4,9 +4,8 @@
 #include "../Include/Buffer.h"
 #include "../Include/DescriptorManager.h"
 #include "../Include/FramebufferSet.h"
-#include "../Include/Texture.h"
-#include "../Include/Pipeline.h"
 #include "../Include/SwapChain.h"
+#include "../Include/Texture.h"
 
 class Material {
 public:
@@ -23,14 +22,35 @@ public:
         std::string fragmentShaderFilename,
         std::string textureFilename);
 
+    Material(const Material& rhs) = delete;
+
+    Material(Material&& rhs)
+        : mDevice{rhs.mDevice},
+          mTexture{rhs.mTexture},
+          mDescriptorSet{rhs.mDescriptorSet},
+          mFramebufferSet{rhs.mFramebufferSet},
+          mVertexShaderModule{rhs.mVertexShaderModule},
+          mFragmentShaderModule{rhs.mFragmentShaderModule}
+    {
+        rhs.mVertexShaderModule = nullptr;
+        rhs.mFragmentShaderModule = nullptr;
+    }
+
+    ~Material();
+
     FramebufferSet& framebufferSet()
     {
         return mFramebufferSet;
     }
-    
-    Pipeline& pipeline()
+
+    vk::ShaderModule vertexShaderModule()
     {
-        return mPipeline;
+        return mVertexShaderModule;
+    }
+
+    vk::ShaderModule fragmentShaderModule()
+    {
+        return mFragmentShaderModule;
     }
 
     Texture& texture()
@@ -44,8 +64,10 @@ public:
     }
 
 private:
+    Device& mDevice;
     Texture mTexture;
     DescriptorSet mDescriptorSet;
     FramebufferSet mFramebufferSet;
-    Pipeline mPipeline;
+    vk::ShaderModule mVertexShaderModule;
+    vk::ShaderModule mFragmentShaderModule;
 };

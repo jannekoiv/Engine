@@ -162,24 +162,24 @@ void drawModelsPass(
     std::vector<Model>& models)
 {
     vk::RenderPassBeginInfo renderPassInfo;
-    renderPassInfo.renderPass = models.front().mMaterial.framebufferSet().renderPass();
+    renderPassInfo.renderPass = models.front().material().framebufferSet().renderPass();
     renderPassInfo.framebuffer =
-        models.front().mMaterial.framebufferSet().frameBuffer(framebufferIndex);
+        models.front().material().framebufferSet().frameBuffer(framebufferIndex);
     renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
     renderPassInfo.renderArea.extent = swapChainExtent;
 
     commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
     for (Model& model : models) {
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, model.mMaterial.pipeline());
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, model.pipeline());
         commandBuffer.bindVertexBuffers(0, {model.vertexBuffer()}, {0});
         commandBuffer.bindIndexBuffer(model.indexBuffer(), 0, vk::IndexType::eUint32);
 
         commandBuffer.bindDescriptorSets(
             vk::PipelineBindPoint::eGraphics,
-            model.mMaterial.pipeline().layout(),
+            model.pipeline().layout(),
             0,
-            {model.mMaterial.descriptorSet()},
+            {model.material().descriptorSet()},
             nullptr);
 
         commandBuffer.drawIndexed(static_cast<uint32_t>(model.indexCount()), 1, 0, 0, 0);
