@@ -2,9 +2,9 @@
 #include "../Include/Renderer.h"
 #include "../Include/Device.h"
 #include "../Include/FramebufferSet.h"
-#include "../Include/Texture.h"
 #include "../Include/Model.h"
 #include "../Include/SwapChain.h"
+#include "../Include/Texture.h"
 #include <fstream>
 #include <iostream>
 
@@ -161,16 +161,15 @@ void drawModelsPass(
     vk::Extent2D swapChainExtent,
     std::vector<Model>& models)
 {
-    vk::RenderPassBeginInfo renderPassInfo;
-    renderPassInfo.renderPass = models.front().material().framebufferSet().renderPass();
-    renderPassInfo.framebuffer =
-        models.front().material().framebufferSet().frameBuffer(framebufferIndex);
-    renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
-    renderPassInfo.renderArea.extent = swapChainExtent;
-
-    commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
-
     for (Model& model : models) {
+        vk::RenderPassBeginInfo renderPassInfo;
+        renderPassInfo.renderPass = models.front().material().framebufferSet().renderPass();
+        renderPassInfo.framebuffer =
+            models.front().material().framebufferSet().frameBuffer(framebufferIndex);
+        renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
+        renderPassInfo.renderArea.extent = swapChainExtent;
+
+        commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, model.pipeline());
         commandBuffer.bindVertexBuffers(0, {model.vertexBuffer()}, {0});
         commandBuffer.bindIndexBuffer(model.indexBuffer(), 0, vk::IndexType::eUint32);
@@ -179,13 +178,20 @@ void drawModelsPass(
             vk::PipelineBindPoint::eGraphics,
             model.pipeline().layout(),
             0,
+            {model.descriptorSet()},
+            nullptr);
+
+        commandBuffer.bindDescriptorSets(
+            vk::PipelineBindPoint::eGraphics,
+            model.pipeline().layout(),
+            1,
             {model.material().descriptorSet()},
             nullptr);
 
         commandBuffer.drawIndexed(static_cast<uint32_t>(model.indexCount()), 1, 0, 0, 0);
-    }
 
-    commandBuffer.endRenderPass();
+        commandBuffer.endRenderPass();
+    }
 }
 
 std::vector<vk::CommandBuffer> createCommandBuffers(

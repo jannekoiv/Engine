@@ -49,18 +49,18 @@ void mainLoop(
 
         for (int i = 0; i < models.size(); i++) {
             Model& model = models[i];
-            auto& worldView = model.mUniformBufferObject.worldView;
-            auto& proj = model.mUniformBufferObject.proj;
+            auto& worldView = model.uniform().worldView;
+            auto& proj = model.uniform().proj;
 
             worldView = glm::lookAt(
-                glm::vec3(0.0f, 0.0f, 10.0f),
+                glm::vec3(-0.0f, 0.0f, 40.0f),
                 glm::vec3(0.0f, 0.0f, 1.0f),
                 glm::vec3(0.0f, 1.0f, 0.0f));
             worldView = glm::translate(worldView, positions[i]);
             worldView =
                 glm::rotate(worldView, rot * static_cast<float>(i), glm::vec3(0.0f, 1.0f, 0.0f));
 
-            proj = glm::perspective(glm::radians(45.0f), 1920.0f / 1080.0f, 0.1f, 1000.0f);
+            proj = glm::perspective(glm::radians(10.0f), 1920.0f / 1080.0f, 0.1f, 1000.0f);
             proj[1][1] *= -1.0f;
 
             model.updateUniformBuffer();
@@ -87,13 +87,6 @@ public:
 
 private:
     int mData;
-};
-
-struct less_than_key {
-    inline bool operator()(const C& struct1, const C& struct2)
-    {
-        return true;
-    }
 };
 
 int main()
@@ -124,14 +117,13 @@ int main()
         vk::MemoryPropertyFlagBits::eDeviceLocal,
         vk::SamplerAddressMode::eClampToEdge};
 
-
     DescriptorManager descriptorManager{device};
 
     std::vector<Model> models;
 
     for (int i = 0; i < 4; i++) {
         models.push_back(createModelFromFile(
-            device, descriptorManager, swapChain, depthImage, "d:/apina.dat"));
+            device, descriptorManager, swapChain, depthImage, "d:/meshes/Suzanne.dat"));
     }
 
     //std::sort(std::begin(models), std::end(models), less_than_key());

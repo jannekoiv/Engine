@@ -5,6 +5,19 @@
 #include "../Include/Base.h"
 #include "../Include/Device.h"
 #include "stb_image.h"
+#include <fstream>
+
+Material::Material(Material&& rhs)
+    : mDevice{rhs.mDevice},
+      mTexture{rhs.mTexture},
+      mDescriptorSet{rhs.mDescriptorSet},
+      mFramebufferSet{rhs.mFramebufferSet},
+      mVertexShader{rhs.mVertexShader},
+      mFragmentShader{rhs.mFragmentShader}
+{
+    rhs.mVertexShader = nullptr;
+    rhs.mFragmentShader = nullptr;
+}
 
 Texture createTexture(Device& device, std::string filename)
 {
@@ -32,7 +45,7 @@ Texture createTexture(Device& device, std::string filename)
     static_cast<vk::Device>(device).unmapMemory(stagingBuffer.memory());
     stbi_image_free(pixels);
 
-    Texture image{
+    Texture texture{
         device,
         vk::Extent3D(width, height, 1),
         vk::Format::eR8G8B8A8Unorm,
@@ -40,51 +53,32 @@ Texture createTexture(Device& device, std::string filename)
         vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
             vk::ImageUsageFlagBits::eSampled,
         vk::MemoryPropertyFlagBits::eDeviceLocal,
-        vk::SamplerAddressMode::eClampToEdge};
+        vk::SamplerAddressMode::eRepeat};
 
-    image.transitionLayout(
-        vk::Format::eR8G8B8A8Unorm,
-        vk::ImageLayout::eUndefined,
-        vk::ImageLayout::eTransferDstOptimal);
+    texture.transitionLayout(vk::ImageLayout::eTransferDstOptimal);
+    stagingBuffer.copyToImage(texture);
+    texture.transitionLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
-    stagingBuffer.copyToImage(image);
-
-    image.transitionLayout(
-        vk::Format::eR8G8B8A8Unorm,
-        vk::ImageLayout::eTransferDstOptimal,
-        vk::ImageLayout::eShaderReadOnlyOptimal);
-
-    return image;
+    return texture;
 }
 
-DescriptorSet createDescriptorSet(
-    DescriptorManager& descriptorManager,
-    Material& material,
-    Buffer& uniformBuffer,
-    vk::DeviceSize uniformBufferSize)
+DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, Material& material)
 {
     std::vector<vk::DescriptorSetLayoutBinding> bindings = {
-        {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
-        {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
+        {0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
 
     DescriptorSet descriptorSet = descriptorManager.createDescriptorSet(bindings);
-
-    vk::DescriptorBufferInfo bufferInfo;
-    bufferInfo.buffer = uniformBuffer;
-    bufferInfo.offset = 0;
-    bufferInfo.range = uniformBufferSize;
 
     vk::DescriptorImageInfo imageInfo;
     imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
     imageInfo.imageView = material.texture().view();
     imageInfo.sampler = material.texture().sampler();
 
-    descriptorSet.writeDescriptors({{0, 0, 1, &bufferInfo}, {1, 0, 1, &imageInfo}});
-
+    descriptorSet.writeDescriptors({{0, 0, 1, &imageInfo}});
     return descriptorSet;
 }
 
-vk::ShaderModule createShaderModule(vk::Device device, std::string filename)
+vk::ShaderModule createShader(vk::Device device, std::string filename)
 {
     auto code = readFile(filename);
 
@@ -99,22 +93,17 @@ vk::ShaderModule createShaderModule(vk::Device device, std::string filename)
 Material::Material(
     Device& device,
     DescriptorManager& descriptorManager,
-    Buffer& uniformBuffer,
-    vk::DeviceSize uniformBufferSize,
     SwapChain& swapChain,
     Texture& depthImage,
-    vk::VertexInputBindingDescription bindingDescription,
-    std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
-    std::string vertexShaderFilename,
-    std::string fragmentShaderFilename,
-    std::string textureFilename)
+    Texture&& texture,
+    vk::ShaderModule vertexShader,
+    vk::ShaderModule fragmentShader)
     : mDevice{device},
-      mTexture{createTexture(device, textureFilename)},
-      mDescriptorSet{
-          createDescriptorSet(descriptorManager, *this, uniformBuffer, uniformBufferSize)},
+      mTexture{texture},
+      mDescriptorSet{createDescriptorSet(descriptorManager, *this)},
       mFramebufferSet{device, swapChain, depthImage, vk::AttachmentLoadOp::eLoad},
-      mVertexShaderModule{createShaderModule(device, vertexShaderFilename)},
-      mFragmentShaderModule{createShaderModule(device, fragmentShaderFilename)}
+      mVertexShader{vertexShader},
+      mFragmentShader{fragmentShader}
 {
     //std::cout << "Material constructor\n";
 }
@@ -122,5 +111,36 @@ Material::Material(
 Material::~Material()
 {
     //std::cout << "Material destructor\n";
-    static_cast<vk::Device>(mDevice).destroyShaderModule(mVertexShaderModule);
+    static_cast<vk::Device>(mDevice).destroyShaderModule(mVertexShader);
+}
+
+Material createMaterialFromFile(
+    Device& device,
+    DescriptorManager& descriptorManager,
+    SwapChain& swapChain,
+    Texture& depthImage,
+    std::string filename)
+{
+    std::ifstream file(filename, std::ios::in | std::ios::binary);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open material file!");
+    }
+
+    auto header = readString(file);
+    if (header != "paskaformaatti 1.0") {
+        std::cout << "HEADER\n";
+        throw std::runtime_error("Header file not matching!");
+    }
+
+    auto textureFilename = readString(file);
+    auto texture = createTexture(device, textureFilename);
+
+    auto vertexShaderFilename = readString(file);
+    auto vertexShader = createShader(device, vertexShaderFilename);
+
+    auto fragmentShaderFilename = readString(file);
+    auto fragmentShader = createShader(device, fragmentShaderFilename);
+
+    return Material(
+        device, descriptorManager, swapChain, depthImage, createTexture(device, textureFilename), vertexShader, fragmentShader);
 }

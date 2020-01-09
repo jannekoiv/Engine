@@ -2,6 +2,44 @@
 #include "../Include/Base.h"
 #include <fstream>
 
+int32_t readInt(std::ifstream& file)
+{
+    int32_t v = 0;
+    file.read(reinterpret_cast<char*>(&v), sizeof(v));
+    return v;
+}
+
+uint32_t readUInt(std::ifstream& file)
+{
+    uint32_t v = 0;
+    file.read(reinterpret_cast<char*>(&v), sizeof(v));
+    return v;
+}
+
+size_t readSize(std::ifstream& file)
+{
+    size_t v = 0;
+    file.read(reinterpret_cast<char*>(&v), sizeof(v));
+    return v;
+}
+
+float readFloat(std::ifstream& file)
+{
+    float v = 0;
+    file.read(reinterpret_cast<char*>(&v), sizeof(v));
+    return v;
+}
+
+std::string readString(std::ifstream& file)
+{
+    int32_t len = readInt(file);
+    char tmp[100];
+    memset(tmp, 0, sizeof(tmp));
+    file.read(tmp, len);
+    std::vector<char> vec;
+    return std::string(tmp);
+}
+
 std::vector<char> readFile(const std::string& filename)
 {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);

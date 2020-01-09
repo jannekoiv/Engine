@@ -3,29 +3,6 @@
 #include <fstream>
 #include <iostream>
 
-uint32_t readInt(std::ifstream& file)
-{
-    uint32_t v = 0;
-    file.read(reinterpret_cast<char*>(&v), sizeof(v));
-    return v;
-}
-
-float readFloat(std::ifstream& file)
-{
-    float v = 0;
-    file.read(reinterpret_cast<char*>(&v), sizeof(v));
-    return v;
-}
-
-std::string readString(std::ifstream& file)
-{
-    uint32_t len = readInt(file);
-    char tmp[100];
-    memset(tmp, 0, sizeof(tmp));
-    file.read(tmp, len);
-    return std::string(tmp);
-}
-
 Model createModelFromFile(
     Device& device,
     DescriptorManager& descriptorManager,
@@ -40,17 +17,15 @@ Model createModelFromFile(
 
     std::string header = readString(file);
     if (header != "paskaformaatti 1.0") {
+        std::cout << "HEADER\n";
         throw std::runtime_error("Header file not matching!");
     }
 
     glm::mat4 worldMatrix;
     file.read(reinterpret_cast<char*>(&worldMatrix), sizeof(glm::mat4));
 
-    std::string material = readString(file);
-    //Image image = createTextureImage(device, material);
-    //Image image = createTextureImage(device, "d:/texture3.jpg");
-
     uint32_t vertexCount = readInt(file);
+    std::cout << "vertex count " << vertexCount << std::endl;
     std::vector<Vertex> vertices(vertexCount);
     for (Vertex& vertex : vertices) {
         vertex.position.x = readFloat(file);
@@ -64,22 +39,34 @@ Model createModelFromFile(
     }
 
     uint32_t indexCount = readInt(file);
+    std::cout << "index count " << indexCount << std::endl;
     std::vector<uint32_t> indices(indexCount);
     for (uint32_t& index : indices) {
         index = readInt(file);
     }
 
+    auto materialFilename = readString(file);
+    Material material =
+        createMaterialFromFile(device, descriptorManager, swapChain, depthImage, materialFilename);
+
     file.close();
 
-    return Model(device, descriptorManager, swapChain, depthImage, worldMatrix, vertices, indices);
+    return Model{
+        device,
+        descriptorManager,
+        swapChain,
+        depthImage,
+        worldMatrix,
+        vertices,
+        indices,
+        material};
 }
 
 Buffer createUniformBuffer(Device& device)
 {
-    std::cout << "UB created\n";
     return Buffer(
         device,
-        sizeof(UniformBufferObject),
+        sizeof(Uniform),
         vk::BufferUsageFlagBits::eUniformBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 }
@@ -107,7 +94,6 @@ Buffer createVertexBuffer(Device& device, std::vector<Vertex>& vertices)
 
     stagingBuffer.copy(vertexBuffer);
 
-    std::cout << "VB created\n";
     return vertexBuffer;
 }
 
@@ -134,7 +120,6 @@ Buffer createIndexBuffer(Device& device, std::vector<uint32_t>& indices)
 
     stagingBuffer.copy(indexBuffer);
 
-    std::cout << "IB created\n";
     return indexBuffer;
 }
 
@@ -148,7 +133,7 @@ DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, vk::Buff
     vk::DescriptorBufferInfo bufferInfo;
     bufferInfo.buffer = uniformBuffer;
     bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(UniformBufferObject);
+    bufferInfo.range = sizeof(Uniform);
 
     descriptorSet.writeDescriptors({{0, 0, 1, &bufferInfo}});
     return descriptorSet;
@@ -161,32 +146,23 @@ Model::Model(
     Texture& depthImage,
     glm::mat4 worldMatrix,
     std::vector<Vertex> vertices,
-    std::vector<uint32_t> indices)
+    std::vector<uint32_t> indices,
+    Material& material)
     : mDevice(device),
       mWorldMatrix(worldMatrix),
       mVertexBuffer(createVertexBuffer(mDevice, vertices)),
       mIndexBuffer(createIndexBuffer(mDevice, indices)),
       mIndexCount(indices.size()),
       mUniformBuffer(createUniformBuffer(mDevice)),
-      //mDescriptorManager(descriptorManager),
-      //mDescriptorSet(createDescriptorSet(mDescriptorManager, mUniformBuffer)),
-      mMaterial{
-          mDevice,
-          descriptorManager,
-          mUniformBuffer,
-          sizeof(mUniformBufferObject),
-          swapChain,
-          depthImage,
-          Vertex::getBindingDescription(),
-          Vertex::getAttributeDescriptions(),
-          "d:/Shaders/vert.spv",
-          "d:/Shaders/frag.spv",
-          "d:/texture3.jpg"},
+      mDescriptorManager(descriptorManager),
+      mDescriptorSet(createDescriptorSet(mDescriptorManager, mUniformBuffer)),
+      mMaterial{std::move(material)},
       mPipeline{
           device,
           mMaterial,
-          Vertex::getBindingDescription(),
-          Vertex::getAttributeDescriptions(),
+          mDescriptorSet.layout(),
+          Vertex::bindingDescription(),
+          Vertex::attributeDescriptions(),
           swapChain.extent()}
 {
     //std::cout << "Model constructor\n";
@@ -195,7 +171,7 @@ Model::Model(
 void Model::updateUniformBuffer()
 {
     void* data = static_cast<vk::Device>(mDevice).mapMemory(
-        mUniformBuffer.memory(), 0, sizeof(mUniformBufferObject), {});
-    memcpy(data, &mUniformBufferObject, sizeof(UniformBufferObject));
+        mUniformBuffer.memory(), 0, sizeof(mUniform), {});
+    memcpy(data, &mUniform, sizeof(Uniform));
     static_cast<vk::Device>(mDevice).unmapMemory(mUniformBuffer.memory());
 }

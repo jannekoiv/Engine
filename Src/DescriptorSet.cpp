@@ -18,12 +18,12 @@ void DescriptorSet::writeDescriptors(std::vector<DescriptorWrite> descriptorWrit
 
         if (mBindings[descriptorWrites[i].binding].descriptorType ==
             vk::DescriptorType::eUniformBuffer) {
-            writes[i].pImageInfo = nullptr;
             writes[i].pBufferInfo =
                 static_cast<vk::DescriptorBufferInfo*>(descriptorWrites[i].infos);
+            writes[i].pImageInfo = nullptr;
         } else {
-            writes[i].pImageInfo = static_cast<vk::DescriptorImageInfo*>(descriptorWrites[i].infos);
             writes[i].pBufferInfo = nullptr;
+            writes[i].pImageInfo = static_cast<vk::DescriptorImageInfo*>(descriptorWrites[i].infos);
         }
 
         writes[i].pTexelBufferView = nullptr;

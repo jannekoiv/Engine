@@ -12,19 +12,18 @@ vk::Image createImage(
     vk::ImageTiling tiling,
     vk::ImageUsageFlags usage)
 {
-    extent.depth = 1;
-
-    vk::ImageCreateInfo imageInfo;
-    imageInfo.imageType = vk::ImageType::e2D;
-    imageInfo.extent = extent;
-    imageInfo.mipLevels = 1;
+    vk::ImageCreateInfo imageInfo{};
     imageInfo.arrayLayers = 1;
+    imageInfo.extent = vk::Extent3D{extent.width, extent.height, 1};
+    imageInfo.flags = {};
     imageInfo.format = format;
-    imageInfo.tiling = tiling;
+    imageInfo.imageType = vk::ImageType::e2D;
     imageInfo.initialLayout = vk::ImageLayout::eUndefined;
-    imageInfo.usage = usage;
+    imageInfo.mipLevels = 1;
     imageInfo.samples = vk::SampleCountFlagBits::e1;
     imageInfo.sharingMode = vk::SharingMode::eExclusive;
+    imageInfo.tiling = tiling;
+    imageInfo.usage = usage;
 
     vk::Image image = device.createImage(imageInfo, nullptr);
     return image;
@@ -121,6 +120,7 @@ Texture::Texture(
     : mDevice{device},
       mExtent{extent},
       mFormat{format},
+      mLayout{vk::ImageLayout::eUndefined},
       mImage{createImage(mDevice, mExtent, mFormat, tiling, usage)},
       mMemory{allocateAndBindMemory(mDevice, mImage, memoryProperties)},
       mView{createImageView(mDevice, mImage, mFormat)},
@@ -134,13 +134,12 @@ Texture::~Texture()
     //    static_cast<vk::Device>(mDevice).destroyImage(mImage);
 }
 
-void Texture::transitionLayout(
-    vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
+void Texture::transitionLayout(vk::ImageLayout newLayout)
 {
     vk::CommandBuffer commandBuffer = mDevice.createAndBeginCommandBuffer();
 
     vk::ImageMemoryBarrier barrier;
-    barrier.oldLayout = oldLayout;
+    barrier.oldLayout = mLayout;
     barrier.newLayout = newLayout;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -154,97 +153,97 @@ void Texture::transitionLayout(
     vk::PipelineStageFlags srcStage;
     vk::PipelineStageFlags dstStage;
 
-    if (oldLayout == vk::ImageLayout::eUndefined &&
+    if (mLayout == vk::ImageLayout::eUndefined &&
         newLayout == vk::ImageLayout::eTransferDstOptimal) {
         barrier.srcAccessMask = {};
         barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
         srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
         dstStage = vk::PipelineStageFlagBits::eTransfer;
     } else if (
-        oldLayout == vk::ImageLayout::eUndefined &&
+        mLayout == vk::ImageLayout::eUndefined &&
         newLayout == vk::ImageLayout::eColorAttachmentOptimal) {
         barrier.srcAccessMask = {};
         barrier.dstAccessMask =
             vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
         srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
         dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    } else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eGeneral) {
+    } else if (mLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eGeneral) {
         barrier.srcAccessMask = {};
         barrier.dstAccessMask = {};
         srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
         dstStage = vk::PipelineStageFlagBits::eAllGraphics;
     } else if (
-        oldLayout == vk::ImageLayout::eUndefined &&
+        mLayout == vk::ImageLayout::eUndefined &&
         newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
         barrier.srcAccessMask = {};
         barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
         srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
         dstStage = vk::PipelineStageFlagBits::eFragmentShader;
     } else if (
-        oldLayout == vk::ImageLayout::eTransferDstOptimal &&
+        mLayout == vk::ImageLayout::eTransferDstOptimal &&
         newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
         barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
         barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
         srcStage = vk::PipelineStageFlagBits::eTransfer;
         dstStage = vk::PipelineStageFlagBits::eFragmentShader;
     } else if (
-        oldLayout == vk::ImageLayout::eTransferSrcOptimal &&
+        mLayout == vk::ImageLayout::eTransferSrcOptimal &&
         newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
         barrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
         barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
         srcStage = vk::PipelineStageFlagBits::eTransfer;
         dstStage = vk::PipelineStageFlagBits::eFragmentShader;
     } else if (
-        oldLayout == vk::ImageLayout::eUndefined &&
+        mLayout == vk::ImageLayout::eUndefined &&
         newLayout == vk::ImageLayout::eTransferSrcOptimal) {
         barrier.srcAccessMask = {};
         barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
         srcStage = vk::PipelineStageFlagBits::eFragmentShader;
         dstStage = vk::PipelineStageFlagBits::eTransfer;
     } else if (
-        oldLayout == vk::ImageLayout::eShaderReadOnlyOptimal &&
+        mLayout == vk::ImageLayout::eShaderReadOnlyOptimal &&
         newLayout == vk::ImageLayout::eTransferSrcOptimal) {
         barrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
         barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
         srcStage = vk::PipelineStageFlagBits::eFragmentShader;
         dstStage = vk::PipelineStageFlagBits::eTransfer;
     } else if (
-        oldLayout == vk::ImageLayout::eShaderReadOnlyOptimal &&
+        mLayout == vk::ImageLayout::eShaderReadOnlyOptimal &&
         newLayout == vk::ImageLayout::eColorAttachmentOptimal) {
         barrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
         barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
         srcStage = vk::PipelineStageFlagBits::eAllGraphics;
         dstStage = vk::PipelineStageFlagBits::eAllGraphics;
     } else if (
-        oldLayout == vk::ImageLayout::eShaderReadOnlyOptimal &&
+        mLayout == vk::ImageLayout::eShaderReadOnlyOptimal &&
         newLayout == vk::ImageLayout::ePresentSrcKHR) {
         barrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
         barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
         srcStage = vk::PipelineStageFlagBits::eAllGraphics;
         dstStage = vk::PipelineStageFlagBits::eAllGraphics;
     } else if (
-        oldLayout == vk::ImageLayout::eColorAttachmentOptimal &&
+        mLayout == vk::ImageLayout::eColorAttachmentOptimal &&
         newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
         barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
         barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead,
         srcStage = vk::PipelineStageFlagBits::eAllGraphics;
         dstStage = vk::PipelineStageFlagBits::eAllGraphics;
     } else if (
-        oldLayout == vk::ImageLayout::ePresentSrcKHR &&
+        mLayout == vk::ImageLayout::ePresentSrcKHR &&
         newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
         barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
         barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead,
         srcStage = vk::PipelineStageFlagBits::eAllGraphics;
         dstStage = vk::PipelineStageFlagBits::eAllGraphics;
     } else if (
-        oldLayout == vk::ImageLayout::ePresentSrcKHR &&
+        mLayout == vk::ImageLayout::ePresentSrcKHR &&
         newLayout == vk::ImageLayout::eTransferSrcOptimal) {
         barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
         barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
         srcStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
         dstStage = vk::PipelineStageFlagBits::eTransfer;
     } else if (
-        oldLayout == vk::ImageLayout::eColorAttachmentOptimal &&
+        mLayout == vk::ImageLayout::eColorAttachmentOptimal &&
         newLayout == vk::ImageLayout::eTransferSrcOptimal) {
         std::cout << "TRANSFERING\n";
         barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
@@ -252,7 +251,7 @@ void Texture::transitionLayout(
         srcStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
         dstStage = vk::PipelineStageFlagBits::eTransfer;
     } else if (
-        oldLayout == vk::ImageLayout::eTransferSrcOptimal &&
+        mLayout == vk::ImageLayout::eTransferSrcOptimal &&
         newLayout == vk::ImageLayout::eColorAttachmentOptimal) {
         std::cout << "TRANSFERING BACK\n";
         barrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
@@ -260,7 +259,7 @@ void Texture::transitionLayout(
         srcStage = vk::PipelineStageFlagBits::eTransfer;
         dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
     } else if (
-        oldLayout == vk::ImageLayout::eTransferSrcOptimal &&
+        mLayout == vk::ImageLayout::eTransferSrcOptimal &&
         newLayout == vk::ImageLayout::ePresentSrcKHR) {
         std::cout << "TRANSFERING\n";
         barrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
@@ -268,7 +267,7 @@ void Texture::transitionLayout(
         srcStage = vk::PipelineStageFlagBits::eTransfer;
         dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
     } else if (
-        oldLayout == vk::ImageLayout::eUndefined &&
+        mLayout == vk::ImageLayout::eUndefined &&
         newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
         barrier.srcAccessMask = {};
         barrier.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead |
@@ -282,7 +281,7 @@ void Texture::transitionLayout(
 
     if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
         barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
-        if (hasStencilComponent(format)) {
+        if (hasStencilComponent(mFormat)) {
             barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
         }
     } else {

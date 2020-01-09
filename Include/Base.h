@@ -14,6 +14,16 @@
 
 #define UNUSED(x) (void)(x)
 
+int32_t readInt(std::ifstream& file);
+
+uint32_t readUInt(std::ifstream& file);
+
+size_t readSize(std::ifstream& file);
+
+float readFloat(std::ifstream& file);
+
+std::string readString(std::ifstream& file);
+
 std::vector<char> readFile(const std::string& filename);
 
 bool hasStencilComponent(vk::Format format);

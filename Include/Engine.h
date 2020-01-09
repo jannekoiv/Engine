@@ -10,8 +10,8 @@ struct InitInfo {
     const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
     const bool enableValidationLayers = true;
     const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-    const unsigned width = 2000;
-    const unsigned height = 1000;
+    const unsigned width = 1600;
+    const unsigned height = 900;
 };
 
 //class Engine {

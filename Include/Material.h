@@ -12,29 +12,15 @@ public:
     Material(
         Device& device,
         DescriptorManager& descriptorManager,
-        Buffer& uniformBuffer,
-        vk::DeviceSize uniformBufferSize,
         SwapChain& swapChain,
         Texture& depthImage,
-        vk::VertexInputBindingDescription bindingDescription,
-        std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
-        std::string vertexShaderFilename,
-        std::string fragmentShaderFilename,
-        std::string textureFilename);
+        Texture&& texture,
+        vk::ShaderModule vertexShader,
+        vk::ShaderModule fragmentShader);
 
     Material(const Material& rhs) = delete;
 
-    Material(Material&& rhs)
-        : mDevice{rhs.mDevice},
-          mTexture{rhs.mTexture},
-          mDescriptorSet{rhs.mDescriptorSet},
-          mFramebufferSet{rhs.mFramebufferSet},
-          mVertexShaderModule{rhs.mVertexShaderModule},
-          mFragmentShaderModule{rhs.mFragmentShaderModule}
-    {
-        rhs.mVertexShaderModule = nullptr;
-        rhs.mFragmentShaderModule = nullptr;
-    }
+    Material(Material&& rhs);
 
     ~Material();
 
@@ -43,14 +29,14 @@ public:
         return mFramebufferSet;
     }
 
-    vk::ShaderModule vertexShaderModule()
+    vk::ShaderModule vertexShader()
     {
-        return mVertexShaderModule;
+        return mVertexShader;
     }
 
-    vk::ShaderModule fragmentShaderModule()
+    vk::ShaderModule fragmentShader()
     {
-        return mFragmentShaderModule;
+        return mFragmentShader;
     }
 
     Texture& texture()
@@ -68,6 +54,13 @@ private:
     Texture mTexture;
     DescriptorSet mDescriptorSet;
     FramebufferSet mFramebufferSet;
-    vk::ShaderModule mVertexShaderModule;
-    vk::ShaderModule mFragmentShaderModule;
+    vk::ShaderModule mVertexShader;
+    vk::ShaderModule mFragmentShader;
 };
+
+Material createMaterialFromFile(
+    Device& device,
+    DescriptorManager& descriptorManager,
+    SwapChain& swapChain,
+    Texture& depthImage,
+    std::string filename);

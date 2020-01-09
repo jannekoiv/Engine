@@ -9,13 +9,13 @@
 
 class Device;
 
-struct UniformBufferObject {
+struct Uniform {
     glm::highp_mat4 worldView;
     glm::highp_mat4 proj;
 };
 
 struct Vertex {
-    static vk::VertexInputBindingDescription getBindingDescription()
+    static vk::VertexInputBindingDescription bindingDescription()
     {
         vk::VertexInputBindingDescription bindingDescription = {};
         bindingDescription.binding = 0;
@@ -25,7 +25,7 @@ struct Vertex {
         return bindingDescription;
     }
 
-    static std::vector<vk::VertexInputAttributeDescription> getAttributeDescriptions()
+    static std::vector<vk::VertexInputAttributeDescription> attributeDescriptions()
     {
         std::vector<vk::VertexInputAttributeDescription> attributeDescriptions(3);
 
@@ -67,7 +67,8 @@ public:
         Texture& depthImage,
         glm::mat4 worldMatrix,
         std::vector<Vertex> vertices,
-        std::vector<uint32_t> indices);
+        std::vector<uint32_t> indices,
+        Material& material);
 
     Buffer& vertexBuffer()
     {
@@ -89,10 +90,10 @@ public:
         return mPipeline;
     }
 
-    //vk::DescriptorSet descriptorSet()
-    //{
-    //    return mDescriptorSet;
-    //}
+    vk::DescriptorSet descriptorSet()
+    {
+        return mDescriptorSet;
+    }
 
     int indexCount()
     {
@@ -101,16 +102,21 @@ public:
 
     void updateUniformBuffer();
 
-    //private:
+    Uniform& uniform()
+    {
+        return mUniform;
+    }
+
+private:
     Device& mDevice;
     glm::mat4 mWorldMatrix;
     Buffer mVertexBuffer;
     Buffer mIndexBuffer;
     int mIndexCount;
     Buffer mUniformBuffer;
-    UniformBufferObject mUniformBufferObject;
-    //DescriptorManager& mDescriptorManager;
-    //DescriptorSet mDescriptorSet;
+    Uniform mUniform;
+    DescriptorManager& mDescriptorManager;
+    DescriptorSet mDescriptorSet;
     Material mMaterial;
     Pipeline mPipeline;
 };

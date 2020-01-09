@@ -52,13 +52,13 @@ public:
         return mSampler;
     }
 
-    void transitionLayout(
-        vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+    void transitionLayout(vk::ImageLayout newLayout);
 
 private:
     Device& mDevice;
     vk::Extent3D mExtent;
     vk::Format mFormat;
+    vk::ImageLayout mLayout;
     vk::Image mImage;
     vk::DeviceMemory mMemory;
     vk::ImageView mView;
