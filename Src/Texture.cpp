@@ -1,19 +1,23 @@
+#define STB_IMAGE_IMPLEMENTATION
+
 #include "../Include/Texture.h"
 #include "../Include/Base.h"
 #include "../Include/Device.h"
+#include "../Include/Buffer.h"
+#include "stb_image.h"
+#include <iostream>
 #include <vulkan/vulkan.hpp>
 
-#include <iostream>
-
-vk::Image createImage(
+static vk::Image createImage(
     vk::Device device,
+    int layerCount,
     vk::Extent3D extent,
     vk::Format format,
     vk::ImageTiling tiling,
     vk::ImageUsageFlags usage)
 {
     vk::ImageCreateInfo imageInfo{};
-    imageInfo.arrayLayers = 1;
+    imageInfo.arrayLayers = layerCount;
     imageInfo.extent = vk::Extent3D{extent.width, extent.height, 1};
     imageInfo.flags = {};
     imageInfo.format = format;
@@ -111,6 +115,7 @@ vk::Sampler createSampler(vk::Device device, vk::SamplerAddressMode addressMode)
 
 Texture::Texture(
     Device& device,
+    int layerCount,
     vk::Extent3D extent,
     vk::Format format,
     vk::ImageTiling tiling,
@@ -121,7 +126,7 @@ Texture::Texture(
       mExtent{extent},
       mFormat{format},
       mLayout{vk::ImageLayout::eUndefined},
-      mImage{createImage(mDevice, mExtent, mFormat, tiling, usage)},
+      mImage{createImage(mDevice, layerCount, mExtent, mFormat, tiling, usage)},
       mMemory{allocateAndBindMemory(mDevice, mImage, memoryProperties)},
       mView{createImageView(mDevice, mImage, mFormat)},
       mSampler{createSampler(device, addressMode)}
@@ -291,4 +296,47 @@ void Texture::transitionLayout(vk::ImageLayout newLayout)
     commandBuffer.pipelineBarrier(srcStage, dstStage, {}, nullptr, nullptr, barrier);
 
     mDevice.flushAndFreeCommandBuffer(commandBuffer);
+}
+
+Texture createTextureFromFile(Device& device, std::string filename)
+{
+    const int bytesPerPixel = 4;
+    int width = 0;
+    int height = 0;
+    int channelCount = 0;
+
+    stbi_uc* pixels = stbi_load(filename.data(), &width, &height, &channelCount, STBI_rgb_alpha);
+    if (!pixels) {
+        throw std::runtime_error("Failed to load texture image!");
+    }
+
+    vk::DeviceSize imageSize = width * height * bytesPerPixel;
+
+    Buffer stagingBuffer(
+        device,
+        imageSize,
+        vk::BufferUsageFlagBits::eTransferSrc,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+    void* data = stagingBuffer.mapMemory();
+    memcpy(data, pixels, imageSize);
+    stagingBuffer.unmapMemory();
+    stbi_image_free(pixels);
+
+    Texture texture{
+        device,
+        1,
+        vk::Extent3D(width, height, 1),
+        vk::Format::eR8G8B8A8Unorm,
+        vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
+            vk::ImageUsageFlagBits::eSampled,
+        vk::MemoryPropertyFlagBits::eDeviceLocal,
+        vk::SamplerAddressMode::eRepeat};
+
+    texture.transitionLayout(vk::ImageLayout::eTransferDstOptimal);
+    stagingBuffer.copyToImage(texture);
+    texture.transitionLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+
+    return texture;
 }

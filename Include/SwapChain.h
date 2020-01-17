@@ -9,7 +9,7 @@ class RenderPass;
 
 class SwapChain {
 public:
-    SwapChain(Device& device, const vk::Extent2D& extent);
+    SwapChain(Device& device);
 
     operator vk::SwapchainKHR() const
     {

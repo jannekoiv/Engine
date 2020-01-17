@@ -3,6 +3,7 @@
 #include "../Include/Device.h"
 #include "../Include/FramebufferSet.h"
 #include "../Include/Model.h"
+#include "../Include/Skybox.h"
 #include "../Include/SwapChain.h"
 #include "../Include/Texture.h"
 #include <fstream>
@@ -82,7 +83,7 @@ void clearColor(Device& device, SwapChain& swapChain, int index, vk::CommandBuff
         {clearToPresentBarrier});
 }
 
-void clearDepthStencil(Device& device, Texture& depthImage, vk::CommandBuffer commandBuffer)
+void clearDepthStencil(Device& device, Texture& depthTexture, vk::CommandBuffer commandBuffer)
 {
     vk::ClearDepthStencilValue clearDepthStencil{1.0f, 0};
 
@@ -100,7 +101,7 @@ void clearDepthStencil(Device& device, Texture& depthImage, vk::CommandBuffer co
     presentToClearBarrier.newLayout = vk::ImageLayout::eTransferDstOptimal;
     presentToClearBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     presentToClearBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    presentToClearBarrier.image = depthImage;
+    presentToClearBarrier.image = depthTexture;
     presentToClearBarrier.subresourceRange = imageRange;
 
     // Change layout of image to be optimal for presenting
@@ -111,7 +112,7 @@ void clearDepthStencil(Device& device, Texture& depthImage, vk::CommandBuffer co
     clearToPresentBarrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
     clearToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     clearToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    clearToPresentBarrier.image = depthImage;
+    clearToPresentBarrier.image = depthTexture;
     clearToPresentBarrier.subresourceRange = imageRange;
 
     commandBuffer.pipelineBarrier(
@@ -123,7 +124,7 @@ void clearDepthStencil(Device& device, Texture& depthImage, vk::CommandBuffer co
         {presentToClearBarrier});
 
     commandBuffer.clearDepthStencilImage(
-        depthImage, vk::ImageLayout::eTransferDstOptimal, clearDepthStencil, imageRange);
+        depthTexture, vk::ImageLayout::eTransferDstOptimal, clearDepthStencil, imageRange);
 
     commandBuffer.pipelineBarrier(
         vk::PipelineStageFlagBits::eTransfer,
@@ -194,20 +195,15 @@ void drawModelsPass(
     }
 }
 
-std::vector<vk::CommandBuffer> createCommandBuffers(
-    Device& device,
-    SwapChain& swapChain,
-    Texture& depthImage,
-    std::vector<Model>& models,
-    FramebufferSet& clearFramebufferSet)
+void Renderer::createCommandBuffers(std::vector<Model>& models, Skybox& skybox)
 {
     vk::CommandBufferAllocateInfo commandBufferInfo(
-        device.commandPool(), vk::CommandBufferLevel::ePrimary, swapChain.imageCount());
+        mDevice.commandPool(), vk::CommandBufferLevel::ePrimary, mSwapChain.imageCount());
 
-    auto commandBuffers = static_cast<vk::Device>(device).allocateCommandBuffers(commandBufferInfo);
+    mCommandBuffers = static_cast<vk::Device>(mDevice).allocateCommandBuffers(commandBufferInfo);
 
     size_t framebufferIndex = 0;
-    for (vk::CommandBuffer commandBuffer : commandBuffers) {
+    for (vk::CommandBuffer commandBuffer : mCommandBuffers) {
         vk::CommandBufferBeginInfo beginInfo;
         beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
         beginInfo.pInheritanceInfo = nullptr;
@@ -215,26 +211,22 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
 
         clearPass(
             commandBuffer,
-            clearFramebufferSet.renderPass(),
-            clearFramebufferSet.frameBuffer(framebufferIndex),
-            swapChain.extent());
+            mClearFramebufferSet.renderPass(),
+            mClearFramebufferSet.frameBuffer(framebufferIndex),
+            mSwapChain.extent());
 
-        drawModelsPass(commandBuffer, framebufferIndex, swapChain.extent(), models);
+        drawModelsPass(commandBuffer, framebufferIndex, mSwapChain.extent(), models);
 
         framebufferIndex++;
         commandBuffer.end();
     }
-    return commandBuffers;
 }
 
-Renderer::Renderer(
-    Device& device, SwapChain& swapChain, Texture& depthImage, std::vector<Model>& models)
+Renderer::Renderer(Device& device, SwapChain& swapChain, Texture& depthTexture)
     : mDevice(device),
       mSwapChain(swapChain),
-      mDepthImage(depthImage),
-      mClearFramebufferSet{mDevice, mSwapChain, mDepthImage, vk::AttachmentLoadOp::eClear},
-      mCommandBuffers(
-          createCommandBuffers(mDevice, mSwapChain, mDepthImage, models, mClearFramebufferSet)),
+      mDepthTexture(depthTexture),
+      mClearFramebufferSet{mDevice, mSwapChain, mDepthTexture, vk::AttachmentLoadOp::eClear},
       mImageAvailableSemaphore(static_cast<vk::Device>(mDevice).createSemaphore({})),
       mRenderFinishedSemaphore(static_cast<vk::Device>(mDevice).createSemaphore({}))
 {

@@ -9,7 +9,7 @@ class Texture;
 class FramebufferSet {
 public:
     FramebufferSet(
-        Device& device, SwapChain& swapChain, Texture& depthImage, vk::AttachmentLoadOp loadOp);
+        Device& device, SwapChain& swapChain, Texture& depthTexture, vk::AttachmentLoadOp loadOp);
 
     ~FramebufferSet();
 

@@ -2,15 +2,16 @@
 #include "../Include/FramebufferSet.h"
 #include "../Include/Base.h"
 #include "../Include/Device.h"
-#include "../Include/Texture.h"
 #include "../Include/SwapChain.h"
+#include "../Include/Texture.h"
 #include <iostream>
 #include <vulkan/vulkan.hpp>
 
-vk::RenderPass createRenderPass(Device& device, SwapChain& swapChain, vk::AttachmentLoadOp loadOp)
+vk::RenderPass createRenderPass(
+    Device& device, vk::Format swapChainFormat, vk::AttachmentLoadOp loadOp)
 {
     vk::AttachmentDescription colorAttachment{};
-    colorAttachment.format = swapChain.format();
+    colorAttachment.format = swapChainFormat;
     colorAttachment.samples = vk::SampleCountFlagBits::e1;
     colorAttachment.loadOp = loadOp;
     colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
@@ -70,12 +71,12 @@ vk::RenderPass createRenderPass(Device& device, SwapChain& swapChain, vk::Attach
 }
 
 std::vector<vk::Framebuffer> createFramebuffers(
-    Device& device, SwapChain& swapChain, Texture& depthImage, vk::RenderPass renderPass)
+    Device& device, SwapChain& swapChain, Texture& depthTexture, vk::RenderPass renderPass)
 {
     std::vector<vk::Framebuffer> framebuffers(swapChain.imageCount());
 
     for (int i = 0; i < swapChain.imageCount(); i++) {
-        std::array<vk::ImageView, 2> attachments = {swapChain.imageView(i), depthImage.view()};
+        std::array<vk::ImageView, 2> attachments = {swapChain.imageView(i), depthTexture.view()};
 
         vk::FramebufferCreateInfo framebufferInfo{};
         framebufferInfo.renderPass = renderPass;
@@ -94,9 +95,9 @@ std::vector<vk::Framebuffer> createFramebuffers(
 }
 
 FramebufferSet::FramebufferSet(
-    Device& device, SwapChain& swapChain, Texture& depthImage, vk::AttachmentLoadOp loadOp)
-    : mRenderPass{createRenderPass(device, swapChain, loadOp)},
-      mFramebuffers{createFramebuffers(device, swapChain, depthImage, mRenderPass)}
+    Device& device, SwapChain& swapChain, Texture& depthTexture, vk::AttachmentLoadOp loadOp)
+    : mRenderPass{createRenderPass(device, swapChain.format(), loadOp)},
+      mFramebuffers{createFramebuffers(device, swapChain, depthTexture, mRenderPass)}
 {
 }
 

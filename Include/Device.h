@@ -21,11 +21,7 @@ struct SwapChainSupportDetails {
 
 class Device {
 public:
-    Device(
-        GLFWwindow* window,
-        bool enableValidationLayers,
-        const std::vector<const char*>& validationLayers,
-        const std::vector<const char*>& deviceExtensions);
+    Device(GLFWwindow* window, bool enableValidationLayers);
 
     ~Device();
 

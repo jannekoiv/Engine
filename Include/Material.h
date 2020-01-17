@@ -13,8 +13,8 @@ public:
         Device& device,
         DescriptorManager& descriptorManager,
         SwapChain& swapChain,
-        Texture& depthImage,
-        Texture&& texture,
+        Texture& depthTexture,
+        Texture& texture,
         vk::ShaderModule vertexShader,
         vk::ShaderModule fragmentShader);
 
@@ -58,9 +58,11 @@ private:
     vk::ShaderModule mFragmentShader;
 };
 
+vk::ShaderModule createShaderFromFile(vk::Device device, std::string filename);
+
 Material createMaterialFromFile(
     Device& device,
     DescriptorManager& descriptorManager,
     SwapChain& swapChain,
-    Texture& depthImage,
+    Texture& depthTexture,
     std::string filename);

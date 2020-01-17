@@ -1,60 +1,73 @@
 #pragma once
 #include "../Include/Base.h"
 #include "../Include/Buffer.h"
+#include "../Include/DescriptorManager.h"
 #include "../Include/Device.h"
-#include "../Include/Texture.h"
+#include "../Include/Renderer.h"
 #include "../Include/Semaphore.h"
 #include "../Include/SwapChain.h"
+#include "../Include/Texture.h"
+#include "../Include/Model.h"
+#include "../Include/Skybox.h"
 
-struct InitInfo {
-    const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
-    const bool enableValidationLayers = true;
-    const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-    const unsigned width = 1600;
-    const unsigned height = 900;
+class Engine {
+public:
+    Engine(const int width, const int height, const bool enableValidationLayers);
+
+    void initRenderer(std::vector<Model>& models);
+
+    void setKeyCallback(GLFWkeyfun callback)
+    {
+        glfwSetKeyCallback(mWindow, callback);
+    }
+    
+    Model createModelFromFile(std::string filename);
+    
+    GLFWwindow* window()
+    {
+        return mWindow;
+    }
+
+    void drawFrame();
+
+    //    ~Engine();
+    //
+    //    Device& device()
+    //    {
+    //        return mDevice;
+    //    }
+    //
+    //    SwapChain& swapChain()
+    //    {
+    //        return mSwapChain;
+    //    }
+    //
+    //    RenderPass& renderPass()
+    //    {
+    //        return mRenderPass;
+    //    }
+    //
+    //    vk::Framebuffer frameBuffer(int index) const
+    //    {
+    //        return mFrameBuffers[index];
+    //    }
+    //
+    //    size_t frameBufferCount() const
+    //    {
+    //        return mFrameBuffers.size();
+    //    }
+    //
+    //    std::vector<vk::Framebuffer>& frameBuffers()
+    //    {
+    //        return mFrameBuffers;
+    //    }
+    //
+private:
+    GLFWwindow* mWindow;
+    Device mDevice;
+    SwapChain mSwapChain;
+    Texture mDepthTexture;
+    DescriptorManager mDescriptorManager;
+    Renderer mRenderer;
+    Skybox mSkybox;
 };
-
-//class Engine {
-//public:
-//    Engine(const InitInfo& initInfo, GLFWwindow* window);
-//
-//    ~Engine();
-//
-//    Device& device()
-//    {
-//        return mDevice;
-//    }
-//
-//    SwapChain& swapChain()
-//    {
-//        return mSwapChain;
-//    }
-//
-//    RenderPass& renderPass()
-//    {
-//        return mRenderPass;
-//    }
-//
-//    vk::Framebuffer frameBuffer(int index) const
-//    {
-//        return mFrameBuffers[index];
-//    }
-//
-//    size_t frameBufferCount() const
-//    {
-//        return mFrameBuffers.size();
-//    }
-//
-//    std::vector<vk::Framebuffer>& frameBuffers()
-//    {
-//        return mFrameBuffers;
-//    }
-//
-//private:
-//    Device mDevice;
-//    SwapChain mSwapChain;
-//    RenderPass mRenderPass;
-//    Image mDepthImage;
-//    std::vector<vk::Framebuffer> mFrameBuffers;
-//};
-

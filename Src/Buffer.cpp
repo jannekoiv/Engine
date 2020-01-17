@@ -75,7 +75,27 @@ void Buffer::copyToImage(Texture& dstImage, vk::Offset3D offset, vk::Extent3D ex
     mDevice.flushAndFreeCommandBuffer(commandBuffer);
 }
 
-void Buffer::copyToImage(Texture& dstImage, vk::Offset3D offset)
+void Buffer::copyToImage(Texture& dstImage)
 {
-    copyToImage(dstImage, offset, dstImage.extent());
+    copyToImage(dstImage, vk::Offset3D(0, 0, 0), dstImage.extent());
+}
+
+void* Buffer::mapMemory(vk::DeviceSize offset, vk::DeviceSize size)
+{
+    void* data{};
+    vk::Result result =
+        static_cast<vk::Device>(mDevice).mapMemory(mMemory, offset, size, {}, &data);
+    if (result != vk::Result::eSuccess) {
+        throw std::runtime_error{"Failed to map buffer memory"};
+    }
+    return data;
+}
+void* Buffer::mapMemory()
+{
+    return mapMemory(0, mSize);
+}
+
+void Buffer::unmapMemory()
+{
+    static_cast<vk::Device>(mDevice).unmapMemory(mMemory);
 }

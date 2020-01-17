@@ -9,19 +9,18 @@
 
 class Device;
 
-struct Uniform {
+struct ModelUniform {
     glm::highp_mat4 worldView;
     glm::highp_mat4 proj;
 };
 
-struct Vertex {
+struct ModelVertex {
     static vk::VertexInputBindingDescription bindingDescription()
     {
         vk::VertexInputBindingDescription bindingDescription = {};
         bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
+        bindingDescription.stride = sizeof(ModelVertex);
         bindingDescription.inputRate = vk::VertexInputRate::eVertex;
-
         return bindingDescription;
     }
 
@@ -32,17 +31,17 @@ struct Vertex {
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
         attributeDescriptions[0].format = vk::Format::eR32G32B32A32Sfloat;
-        attributeDescriptions[0].offset = offsetof(Vertex, position);
+        attributeDescriptions[0].offset = offsetof(ModelVertex, position);
 
         attributeDescriptions[1].binding = 0;
         attributeDescriptions[1].location = 1;
         attributeDescriptions[1].format = vk::Format::eR32G32B32A32Sfloat;
-        attributeDescriptions[1].offset = offsetof(Vertex, normal);
+        attributeDescriptions[1].offset = offsetof(ModelVertex, normal);
 
         attributeDescriptions[2].binding = 0;
         attributeDescriptions[2].location = 2;
         attributeDescriptions[2].format = vk::Format::eR32G32Sfloat;
-        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+        attributeDescriptions[2].offset = offsetof(ModelVertex, texCoord);
 
         return attributeDescriptions;
     }
@@ -63,10 +62,9 @@ public:
     Model(
         Device& device,
         DescriptorManager& descriptorManager,
-        SwapChain& swapChain,
-        Texture& depthImage,
+        vk::Extent2D swapChainExtent,
         glm::mat4 worldMatrix,
-        std::vector<Vertex> vertices,
+        std::vector<ModelVertex> vertices,
         std::vector<uint32_t> indices,
         Material& material);
 
@@ -102,7 +100,7 @@ public:
 
     void updateUniformBuffer();
 
-    Uniform& uniform()
+    ModelUniform& uniform()
     {
         return mUniform;
     }
@@ -114,7 +112,7 @@ private:
     Buffer mIndexBuffer;
     int mIndexCount;
     Buffer mUniformBuffer;
-    Uniform mUniform;
+    ModelUniform mUniform;
     DescriptorManager& mDescriptorManager;
     DescriptorSet mDescriptorSet;
     Material mMaterial;
@@ -125,5 +123,5 @@ Model createModelFromFile(
     Device& device,
     DescriptorManager& descriptorManager,
     SwapChain& swapChain,
-    Texture& depthImage,
+    Texture& depthTexture,
     std::string filename);

@@ -8,6 +8,7 @@ class Texture {
 public:
     Texture(
         Device& device,
+        int layerCount,
         vk::Extent3D extent,
         vk::Format format,
         vk::ImageTiling tiling,
@@ -64,3 +65,5 @@ private:
     vk::ImageView mView;
     vk::Sampler mSampler;
 };
+
+Texture createTextureFromFile(Device& device, std::string filename);

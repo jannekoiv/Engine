@@ -262,22 +262,30 @@ vk::CommandPool createCommandPool(QueueFamilyIndices queueFamilyIndices, vk::Dev
     return commandPool;
 }
 
+const std::vector<const char*> validationLayers()
+{
+    return {"VK_LAYER_LUNARG_standard_validation"};
+}
+
+const std::vector<const char*> deviceExtensions()
+{
+    return {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+}
+
 Device::Device(
     GLFWwindow* window,
-    bool enableValidationLayers,
-    const std::vector<const char*>& validationLayers,
-    const std::vector<const char*>& deviceExtensions)
-    : mInstance(createInstance(enableValidationLayers, validationLayers)),
+    bool enableValidationLayers)
+    : mInstance(createInstance(enableValidationLayers, validationLayers())),
       mDebugCallback(createDebugCallback(enableValidationLayers, mInstance)),
       mSurface(createSurface(mInstance, window)),
-      mPhysicalDevice(pickPhysicalDevice(mInstance, mSurface, deviceExtensions)),
+      mPhysicalDevice(pickPhysicalDevice(mInstance, mSurface, deviceExtensions())),
       mQueueFamilyIndices(findQueueFamilies(mSurface, mPhysicalDevice)),
       mDevice(createLogicalDevice(
           mPhysicalDevice,
           mQueueFamilyIndices,
           enableValidationLayers,
-          validationLayers,
-          deviceExtensions)),
+          validationLayers(),
+          deviceExtensions())),
       mGraphicsQueue(mDevice.getQueue(mQueueFamilyIndices.graphics, 0)),
       mPresentQueue(mDevice.getQueue(mQueueFamilyIndices.present, 0)),
       mCommandPool(createCommandPool(mQueueFamilyIndices, mDevice))
