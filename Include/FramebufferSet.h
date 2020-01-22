@@ -6,10 +6,11 @@ class Device;
 class SwapChain;
 class Texture;
 
+enum class MaterialUsage { Clear, Model, Skybox, Quad, ShadowMap };
+
 class FramebufferSet {
 public:
-    FramebufferSet(
-        Device& device, SwapChain& swapChain, Texture& depthTexture, vk::AttachmentLoadOp loadOp);
+    FramebufferSet(Device& device, SwapChain& swapChain, Texture* depthTexture, MaterialUsage materialUsage);
 
     ~FramebufferSet();
 

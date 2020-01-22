@@ -38,8 +38,8 @@ public:
 
     void copy(Buffer& dstBuffer, vk::DeviceSize size);
     void copy(Buffer& dstBuffer);
-    void copyToImage(Texture& dstImage, vk::Offset3D offset, vk::Extent3D extent);
-    void copyToImage(Texture& dstImage);
+    void copyToTexture(Texture& dstTexture, int layer, vk::Offset3D offset, vk::Extent3D extent);
+    void copyToTexture(Texture& dstTexture, int layer);
 
     void* mapMemory(vk::DeviceSize offset, vk::DeviceSize size);
     void* mapMemory();

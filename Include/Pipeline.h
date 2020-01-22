@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "../Include/Base.h"
+#include "../Include/Material.h"
 
 class Device;
 class DescriptorSetLayout;
@@ -16,7 +16,8 @@ public:
         vk::DescriptorSetLayout descriptorSetLayout,
         vk::VertexInputBindingDescription bindingDescription,
         std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
-        const vk::Extent2D& swapChainExtent);
+        const vk::Extent2D& swapChainExtent,
+        const MaterialUsage usage);
 
     operator vk::Pipeline() const
     {

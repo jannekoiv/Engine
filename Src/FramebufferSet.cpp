@@ -7,44 +7,79 @@
 #include <iostream>
 #include <vulkan/vulkan.hpp>
 
-vk::RenderPass createRenderPass(
-    Device& device, vk::Format swapChainFormat, vk::AttachmentLoadOp loadOp)
+vk::RenderPass createRenderPass(Device& device, vk::Format swapChainFormat, MaterialUsage materialUsage)
 {
-    vk::AttachmentDescription colorAttachment{};
-    colorAttachment.format = swapChainFormat;
-    colorAttachment.samples = vk::SampleCountFlagBits::e1;
-    colorAttachment.loadOp = loadOp;
-    colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
-    colorAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
-    colorAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-    colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
-    colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
-    if (loadOp == vk::AttachmentLoadOp::eLoad) {
-        colorAttachment.initialLayout = vk::ImageLayout::ePresentSrcKHR;
-    }
+    std::vector<vk::AttachmentDescription> attachments{};
 
-    vk::AttachmentReference colorAttachmentRef{0, vk::ImageLayout::eColorAttachmentOptimal};
-
-    vk::AttachmentDescription depthAttachment{};
-    depthAttachment.format = findDepthAttachmentFormat(device);
-    depthAttachment.samples = vk::SampleCountFlagBits::e1;
-    depthAttachment.loadOp = loadOp;
-    depthAttachment.storeOp = vk::AttachmentStoreOp::eStore;
-    depthAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
-    depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-    depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
-    depthAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
-    if (loadOp == vk::AttachmentLoadOp::eLoad) {
-        depthAttachment.initialLayout = vk::ImageLayout::ePresentSrcKHR;
-    }
-
-    vk::AttachmentReference depthAttachmentRef{1, vk::ImageLayout::eDepthStencilAttachmentOptimal};
-
-    vk::SubpassDescription subpass;
+    vk::SubpassDescription subpass{};
     subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+    std::vector<vk::AttachmentReference> colorAttachmentRefs{{{0, vk::ImageLayout::eColorAttachmentOptimal}}};
+
+    if (materialUsage != MaterialUsage::ShadowMap) {
+        vk::AttachmentDescription colorAttachment{};
+        colorAttachment.format = swapChainFormat;
+        colorAttachment.samples = vk::SampleCountFlagBits::e1;
+
+        if (materialUsage == MaterialUsage::Clear) {
+            colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+        } else {
+            colorAttachment.loadOp = vk::AttachmentLoadOp::eLoad;
+        }
+
+        colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
+        colorAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+        colorAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+
+        if (materialUsage == MaterialUsage::Clear) {
+            colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
+        } else {
+            colorAttachment.initialLayout = vk::ImageLayout::ePresentSrcKHR;
+        }
+        colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
+
+        subpass.colorAttachmentCount = colorAttachmentRefs.size();
+        subpass.pColorAttachments = colorAttachmentRefs.data();
+
+        attachments.push_back(colorAttachment);
+    }
+
+    if (materialUsage != MaterialUsage::Quad) {
+        vk::AttachmentReference depthAttachmentRef{};
+
+        if (materialUsage != MaterialUsage::ShadowMap) {
+            depthAttachmentRef.attachment = 1;
+            depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+        } else {
+            depthAttachmentRef.attachment = 0;
+            depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+        }
+
+        subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+        vk::AttachmentDescription depthAttachment{};
+        depthAttachment.format = findDepthAttachmentFormat(device);
+        depthAttachment.samples = vk::SampleCountFlagBits::e1;
+
+        if (materialUsage == MaterialUsage::Clear) {
+            depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+        } else {
+            depthAttachment.loadOp = vk::AttachmentLoadOp::eLoad;
+        }
+
+        depthAttachment.storeOp = vk::AttachmentStoreOp::eStore;
+        depthAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+        depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+
+        if (materialUsage == MaterialUsage::Clear) {
+            depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
+        } else {
+            depthAttachment.initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+        }
+        depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+        attachments.push_back(depthAttachment);
+    }
 
     vk::SubpassDependency dependency;
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -52,10 +87,7 @@ vk::RenderPass createRenderPass(
     dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
     dependency.srcAccessMask = {};
     dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    dependency.dstAccessMask =
-        vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
-
-    std::vector<vk::AttachmentDescription> attachments = {colorAttachment, depthAttachment};
+    dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
 
     vk::RenderPassCreateInfo renderPassInfo;
     renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
@@ -65,18 +97,16 @@ vk::RenderPass createRenderPass(
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    vk::RenderPass renderPass =
-        static_cast<vk::Device>(device).createRenderPass(renderPassInfo, nullptr);
+    std::cout << "attahcment count " << renderPassInfo.attachmentCount << "\n";
+    vk::RenderPass renderPass = static_cast<vk::Device>(device).createRenderPass(renderPassInfo, nullptr);
     return renderPass;
 }
 
 std::vector<vk::Framebuffer> createFramebuffers(
-    Device& device, SwapChain& swapChain, Texture& depthTexture, vk::RenderPass renderPass)
+    Device& device, SwapChain& swapChain, Texture* depthTexture, vk::RenderPass renderPass, MaterialUsage materialUsage)
 {
-    std::vector<vk::Framebuffer> framebuffers(swapChain.imageCount());
-
-    for (int i = 0; i < swapChain.imageCount(); i++) {
-        std::array<vk::ImageView, 2> attachments = {swapChain.imageView(i), depthTexture.view()};
+    if (materialUsage == MaterialUsage::ShadowMap) {
+        std::vector<vk::ImageView> attachments = {depthTexture->view()};
 
         vk::FramebufferCreateInfo framebufferInfo{};
         framebufferInfo.renderPass = renderPass;
@@ -86,18 +116,36 @@ std::vector<vk::Framebuffer> createFramebuffers(
         framebufferInfo.height = swapChain.extent().height;
         framebufferInfo.layers = 1;
 
-        vk::Framebuffer framebuffer =
-            static_cast<vk::Device>(device).createFramebuffer(framebufferInfo, nullptr);
-        framebuffers[i] = framebuffer;
-    }
+        vk::Framebuffer framebuffer = static_cast<vk::Device>(device).createFramebuffer(framebufferInfo, nullptr);
+        return {framebuffer};
+    } else {
+        std::vector<vk::Framebuffer> framebuffers(swapChain.imageCount());
 
-    return framebuffers;
+        for (int i = 0; i < swapChain.imageCount(); i++) {
+            std::vector<vk::ImageView> attachments = {swapChain.imageView(i)};
+            if (depthTexture) {
+                attachments.push_back(depthTexture->view());
+            }
+
+            vk::FramebufferCreateInfo framebufferInfo{};
+            framebufferInfo.renderPass = renderPass;
+            framebufferInfo.attachmentCount = attachments.size();
+            framebufferInfo.pAttachments = attachments.data();
+            framebufferInfo.width = swapChain.extent().width;
+            framebufferInfo.height = swapChain.extent().height;
+            framebufferInfo.layers = 1;
+
+            vk::Framebuffer framebuffer = static_cast<vk::Device>(device).createFramebuffer(framebufferInfo, nullptr);
+            framebuffers[i] = framebuffer;
+        }
+
+        return framebuffers;
+    }
 }
 
-FramebufferSet::FramebufferSet(
-    Device& device, SwapChain& swapChain, Texture& depthTexture, vk::AttachmentLoadOp loadOp)
-    : mRenderPass{createRenderPass(device, swapChain.format(), loadOp)},
-      mFramebuffers{createFramebuffers(device, swapChain, depthTexture, mRenderPass)}
+FramebufferSet::FramebufferSet(Device& device, SwapChain& swapChain, Texture* depthTexture, MaterialUsage materialUsage)
+    : mRenderPass{createRenderPass(device, swapChain.format(), materialUsage)},
+      mFramebuffers{createFramebuffers(device, swapChain, depthTexture, mRenderPass, materialUsage)}
 {
 }
 

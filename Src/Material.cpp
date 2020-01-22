@@ -11,7 +11,8 @@ Material::Material(Material&& rhs)
       mDescriptorSet{rhs.mDescriptorSet},
       mFramebufferSet{rhs.mFramebufferSet},
       mVertexShader{rhs.mVertexShader},
-      mFragmentShader{rhs.mFragmentShader}
+      mFragmentShader{rhs.mFragmentShader},
+      mMaterialUsage{rhs.mMaterialUsage}
 {
     rhs.mVertexShader = nullptr;
     rhs.mFragmentShader = nullptr;
@@ -47,16 +48,18 @@ Material::Material(
     Device& device,
     DescriptorManager& descriptorManager,
     SwapChain& swapChain,
-    Texture& depthTexture,
+    Texture* depthTexture,
     Texture& texture,
     vk::ShaderModule vertexShader,
-    vk::ShaderModule fragmentShader)
+    vk::ShaderModule fragmentShader,
+    MaterialUsage materialUsage)
     : mDevice{device},
       mTexture{texture},
-      mDescriptorSet{createDescriptorSet(descriptorManager, *this)},
-      mFramebufferSet{device, swapChain, depthTexture, vk::AttachmentLoadOp::eLoad},
+      mFramebufferSet{device, swapChain, depthTexture, materialUsage},
       mVertexShader{vertexShader},
-      mFragmentShader{fragmentShader}
+      mFragmentShader{fragmentShader},
+      mMaterialUsage{materialUsage},
+      mDescriptorSet{createDescriptorSet(descriptorManager, *this)}
 {
 }
 
@@ -69,8 +72,9 @@ Material createMaterialFromFile(
     Device& device,
     DescriptorManager& descriptorManager,
     SwapChain& swapChain,
-    Texture& depthTexture,
-    std::string filename)
+    Texture* depthTexture,
+    std::string filename,
+    MaterialUsage materialUsage)
 {
     std::ifstream file(filename, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
@@ -87,6 +91,13 @@ Material createMaterialFromFile(
     auto vertexShader = createShaderFromFile(device, readString(file));
     auto fragmentShader = createShaderFromFile(device, readString(file));
 
-    return Material(
-        device, descriptorManager, swapChain, depthTexture, texture, vertexShader, fragmentShader);
+    return Material{
+        device,
+        descriptorManager,
+        swapChain,
+        depthTexture,
+        texture,
+        vertexShader,
+        fragmentShader,
+        materialUsage};
 }

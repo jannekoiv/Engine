@@ -8,7 +8,8 @@ class Texture {
 public:
     Texture(
         Device& device,
-        int layerCount,
+        vk::ImageViewType type,
+        uint32_t layerCount,
         vk::Extent3D extent,
         vk::Format format,
         vk::ImageTiling tiling,
@@ -18,14 +19,19 @@ public:
 
     ~Texture();
 
-    operator vk::Image() const
-    {
-        return mImage;
-    }
-
     Device& device() const
     {
         return mDevice;
+    }
+
+    vk::ImageViewType type() const
+    {
+        return mType;
+    }
+
+    uint32_t layerCount() const
+    {
+        return mLayerCount;
     }
 
     vk::Extent3D extent() const
@@ -43,6 +49,11 @@ public:
         return mMemory;
     }
 
+    vk::Image image() const
+    {
+        return mImage;
+    }
+
     vk::ImageView view() const
     {
         return mView;
@@ -53,13 +64,17 @@ public:
         return mSampler;
     }
 
-    void transitionLayout(vk::ImageLayout newLayout);
+    void transitionLayout(
+        vk::ImageLayout oldLayout,
+        vk::ImageLayout newLayout,
+        vk::CommandBuffer externalCommandBuffer = nullptr);
 
 private:
     Device& mDevice;
+    vk::ImageViewType mType;
+    uint32_t mLayerCount;
     vk::Extent3D mExtent;
     vk::Format mFormat;
-    vk::ImageLayout mLayout;
     vk::Image mImage;
     vk::DeviceMemory mMemory;
     vk::ImageView mView;
@@ -67,3 +82,4 @@ private:
 };
 
 Texture createTextureFromFile(Device& device, std::string filename);
+Texture createCubeTextureFromFile(Device& device, std::string filename);

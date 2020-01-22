@@ -96,14 +96,15 @@ Model::Model(
       mDescriptorSet(createDescriptorSet(mDescriptorManager, mUniformBuffer)),
       mMaterial{std::move(material)},
       mPipeline{
-          device,
+          mDevice,
           mMaterial,
           mDescriptorSet.layout(),
           ModelVertex::bindingDescription(),
           ModelVertex::attributeDescriptions(),
-          swapChainExtent}
+          swapChainExtent,
+          mMaterial.materialUsage()}
 {
-    //std::cout << "Model constructor\n";
+    std::cout << "Model constructor\n";
 }
 
 void Model::updateUniformBuffer()
@@ -118,7 +119,7 @@ Model createModelFromFile(
     Device& device,
     DescriptorManager& descriptorManager,
     SwapChain& swapChain,
-    Texture& depthTexture,
+    Texture* depthTexture,
     std::string filename)
 {
     std::ifstream file(filename, std::ios::in | std::ios::binary);
@@ -158,16 +159,10 @@ Model createModelFromFile(
 
     auto materialFilename = readString(file);
     Material material = createMaterialFromFile(
-        device, descriptorManager, swapChain, depthTexture, materialFilename);
+        device, descriptorManager, swapChain, depthTexture, materialFilename, MaterialUsage::Model);
 
     file.close();
 
     return Model{
-        device,
-        descriptorManager,
-        swapChain.extent(),
-        worldMatrix,
-        vertices,
-        indices,
-        material};
+        device, descriptorManager, swapChain.extent(), worldMatrix, vertices, indices, material};
 }

@@ -30,7 +30,8 @@ vk::Pipeline createPipeline(
     vk::VertexInputBindingDescription bindingDescription,
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
     vk::Extent2D swapChainExtent,
-    vk::PipelineLayout pipelineLayout)
+    vk::PipelineLayout pipelineLayout,
+    const MaterialUsage usage)
 {
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo;
     vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
@@ -109,9 +110,19 @@ vk::Pipeline createPipeline(
     colorBlending.pAttachments = colorBlendAttachments.data();
 
     vk::PipelineDepthStencilStateCreateInfo depthStencil;
+
     depthStencil.depthTestEnable = true;
     depthStencil.depthWriteEnable = true;
-    depthStencil.depthCompareOp = vk::CompareOp::eLess;
+
+    if (usage == MaterialUsage::Skybox) {
+        depthStencil.depthCompareOp = vk::CompareOp::eLessOrEqual;
+    } else if (usage == MaterialUsage::Model) {
+        depthStencil.depthCompareOp = vk::CompareOp::eLess;
+    } else if (usage == MaterialUsage::Quad) {
+        depthStencil.depthTestEnable = false;
+        depthStencil.depthWriteEnable = false;
+    }
+
     depthStencil.depthBoundsTestEnable = false;
     depthStencil.minDepthBounds = 0.0f;
     depthStencil.maxDepthBounds = 1.0f;
@@ -147,7 +158,8 @@ Pipeline::Pipeline(
     vk::DescriptorSetLayout descriptorSetLayout,
     vk::VertexInputBindingDescription bindingDescription,
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
-    const vk::Extent2D& swapChainExtent)
+    const vk::Extent2D& swapChainExtent,
+    const MaterialUsage usage)
     : mPipelineLayout{createPipelineLayout(device, material, descriptorSetLayout)},
       mPipeline{createPipeline(
           device,
@@ -156,6 +168,7 @@ Pipeline::Pipeline(
           bindingDescription,
           attributeDescriptions,
           swapChainExtent,
-          mPipelineLayout)}
+          mPipelineLayout,
+          usage)}
 {
 }

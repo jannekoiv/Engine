@@ -1,22 +1,25 @@
 #pragma once
 #include "../Include/Base.h"
 #include "../Include/FramebufferSet.h"
+#include "../Include/Buffer.h"
 
 struct UboWorldView {
     glm::mat4* worldView = nullptr;
 };
 
 class Device;
-class Model;
-class Skybox;
 class FramebufferSet;
+class Model;
+class Quad;
+class Skybox;
 class SwapChain;
 class Texture;
+class DirectionalLight;
 
 class Renderer {
 public:
     Renderer(Device& device, SwapChain& swapChain, Texture& depthTexture);
-    void createCommandBuffers(std::vector<Model>& models, Skybox& skybox);
+    void createCommandBuffers(std::vector<Model>& models, Skybox& skybox, Quad& quad, DirectionalLight& light);
     void drawFrame();
 
 private:

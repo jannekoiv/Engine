@@ -13,10 +13,11 @@ public:
         Device& device,
         DescriptorManager& descriptorManager,
         SwapChain& swapChain,
-        Texture& depthTexture,
+        Texture* depthTexture,
         Texture& texture,
         vk::ShaderModule vertexShader,
-        vk::ShaderModule fragmentShader);
+        vk::ShaderModule fragmentShader,
+        MaterialUsage materialUsage);
 
     Material(const Material& rhs) = delete;
 
@@ -49,13 +50,19 @@ public:
         return mDescriptorSet;
     }
 
+    MaterialUsage materialUsage()
+    {
+        return mMaterialUsage;
+    }
+
 private:
     Device& mDevice;
     Texture mTexture;
-    DescriptorSet mDescriptorSet;
     FramebufferSet mFramebufferSet;
     vk::ShaderModule mVertexShader;
     vk::ShaderModule mFragmentShader;
+    MaterialUsage mMaterialUsage;
+    DescriptorSet mDescriptorSet;
 };
 
 vk::ShaderModule createShaderFromFile(vk::Device device, std::string filename);
@@ -64,5 +71,6 @@ Material createMaterialFromFile(
     Device& device,
     DescriptorManager& descriptorManager,
     SwapChain& swapChain,
-    Texture& depthTexture,
-    std::string filename);
+    Texture* depthTexture,
+    std::string filename,
+    MaterialUsage materialUsage);

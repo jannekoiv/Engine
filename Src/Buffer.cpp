@@ -54,7 +54,7 @@ void Buffer::copy(Buffer& dstBuffer)
     copy(dstBuffer, dstBuffer.size());
 }
 
-void Buffer::copyToImage(Texture& dstImage, vk::Offset3D offset, vk::Extent3D extent)
+void Buffer::copyToTexture(Texture& dstTexture, int layer, vk::Offset3D offset, vk::Extent3D extent)
 {
     vk::CommandBuffer commandBuffer = mDevice.createAndBeginCommandBuffer();
 
@@ -64,20 +64,20 @@ void Buffer::copyToImage(Texture& dstImage, vk::Offset3D offset, vk::Extent3D ex
     region.bufferImageHeight = 0;
     region.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
     region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.baseArrayLayer = layer;
     region.imageSubresource.layerCount = 1;
     region.imageOffset = offset;
     region.imageExtent = extent;
 
     commandBuffer.copyBufferToImage(
-        mBuffer, dstImage, vk::ImageLayout::eTransferDstOptimal, region);
+        mBuffer, dstTexture.image(), vk::ImageLayout::eTransferDstOptimal, region);
 
     mDevice.flushAndFreeCommandBuffer(commandBuffer);
 }
 
-void Buffer::copyToImage(Texture& dstImage)
+void Buffer::copyToTexture(Texture& dstTexture, int layer)
 {
-    copyToImage(dstImage, vk::Offset3D(0, 0, 0), dstImage.extent());
+    copyToTexture(dstTexture, layer, vk::Offset3D(0, 0, 0), dstTexture.extent());
 }
 
 void* Buffer::mapMemory(vk::DeviceSize offset, vk::DeviceSize size)

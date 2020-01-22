@@ -3,12 +3,14 @@
 #include "../Include/Buffer.h"
 #include "../Include/DescriptorManager.h"
 #include "../Include/Device.h"
+#include "../Include/DirectionalLight.h"
+#include "../Include/Model.h"
+#include "../Include/Quad.h"
 #include "../Include/Renderer.h"
 #include "../Include/Semaphore.h"
+#include "../Include/Skybox.h"
 #include "../Include/SwapChain.h"
 #include "../Include/Texture.h"
-#include "../Include/Model.h"
-#include "../Include/Skybox.h"
 
 class Engine {
 public:
@@ -20,9 +22,9 @@ public:
     {
         glfwSetKeyCallback(mWindow, callback);
     }
-    
+
     Model createModelFromFile(std::string filename);
-    
+
     GLFWwindow* window()
     {
         return mWindow;
@@ -69,5 +71,9 @@ private:
     Texture mDepthTexture;
     DescriptorManager mDescriptorManager;
     Renderer mRenderer;
+
+public:
     Skybox mSkybox;
+    DirectionalLight mLight;
+    Quad mQuad;
 };
