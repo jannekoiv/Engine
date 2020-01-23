@@ -6,8 +6,7 @@ GLFWwindow* initWindow(const int width, const int height)
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    GLFWwindow* window =
-        glfwCreateWindow(width, height, "Team Leprabakteeri Rendering Engine", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(width, height, "Team Leprabakteeri Rendering Engine", nullptr, nullptr);
     //glfwSetKeyCallback(window, keyCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     return window;
@@ -43,12 +42,12 @@ Model Engine::createModelFromFile(std::string filename)
 
 void Engine::initRenderer(std::vector<Model>& models)
 {
-    mRenderer.createCommandBuffers(models, mSkybox, mQuad, mLight);
-    //mLight.createCommandBuffers(models);
+    mRenderer.createCommandBuffers(models, mSkybox, mQuad, &mLight);
+    mLight.createCommandBuffers(models, mSwapChain.extent());
 }
 
 void Engine::drawFrame()
 {
+    mLight.drawFrame();
     mRenderer.drawFrame();
-    //mLight.drawFrame();
 }

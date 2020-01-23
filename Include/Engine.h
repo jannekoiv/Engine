@@ -72,6 +72,7 @@ private:
     DescriptorManager mDescriptorManager;
     Renderer mRenderer;
 
+
 public:
     Skybox mSkybox;
     DirectionalLight mLight;

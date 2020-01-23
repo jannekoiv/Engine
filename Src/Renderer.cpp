@@ -1,13 +1,13 @@
 
 #include "../Include/Renderer.h"
 #include "../Include/Device.h"
+#include "../Include/DirectionalLight.h"
 #include "../Include/FramebufferSet.h"
 #include "../Include/Model.h"
 #include "../Include/Quad.h"
 #include "../Include/Skybox.h"
 #include "../Include/SwapChain.h"
 #include "../Include/Texture.h"
-#include "../Include/DirectionalLight.h"
 #include <fstream>
 #include <iostream>
 
@@ -15,7 +15,7 @@ Renderer::Renderer(Device& device, SwapChain& swapChain, Texture& depthTexture)
     : mDevice{device},
       mSwapChain{swapChain},
       mDepthTexture{depthTexture},
-      mClearFramebufferSet{mDevice, mSwapChain, &mDepthTexture, MaterialUsage::Clear},
+      mClearFramebufferSet{mDevice, mSwapChain, &mDepthTexture, nullptr, MaterialUsage::Clear},
       mImageAvailableSemaphore{static_cast<vk::Device>(mDevice).createSemaphore({})},
       mRenderFinishedSemaphore{static_cast<vk::Device>(mDevice).createSemaphore({})}
 {
@@ -178,12 +178,6 @@ static void drawModelsPass(
         renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
         renderPassInfo.renderArea.extent = swapChainExtent;
 
-        std::array<vk::ClearValue, 2> clearValues;
-        clearValues[0].color = std::array<float, 4>{0.2f, 0.2f, 0.2f, 1.0f};
-        clearValues[1].depthStencil = vk::ClearDepthStencilValue{0.3f, 0};
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
-
         commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, model.pipeline());
         commandBuffer.bindVertexBuffers(0, {model.vertexBuffer()}, {0});
@@ -253,13 +247,12 @@ static void drawQuadPass(
     commandBuffer.endRenderPass();
 }
 
-void Renderer::createCommandBuffers(std::vector<Model>& models, Skybox& skybox, Quad& quad, DirectionalLight& light)
+void Renderer::createCommandBuffers(std::vector<Model>& models, Skybox& skybox, Quad& quad, DirectionalLight* light)
 {
     vk::CommandBufferAllocateInfo commandBufferInfo(
         mDevice.commandPool(), vk::CommandBufferLevel::ePrimary, mSwapChain.imageCount());
 
     mCommandBuffers = static_cast<vk::Device>(mDevice).allocateCommandBuffers(commandBufferInfo);
-
 
     size_t framebufferIndex = 0;
     for (vk::CommandBuffer commandBuffer : mCommandBuffers) {
@@ -277,11 +270,14 @@ void Renderer::createCommandBuffers(std::vector<Model>& models, Skybox& skybox, 
         drawModelsPass(commandBuffer, framebufferIndex, mSwapChain.extent(), models);
         //drawSkyboxPass(commandBuffer, framebufferIndex, mSwapChain.extent(), skybox);
 
-        light.mMaterial.texture().transitionLayout(
-            vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, commandBuffer);
-        //drawQuadPass(commandBuffer, framebufferIndex, mSwapChain.extent(), quad);
-        light.mMaterial.texture().transitionLayout(
-            vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal, commandBuffer);
+
+        if (light) {
+            light->mMaterial.texture().transitionLayout(
+                vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, commandBuffer);
+            drawQuadPass(commandBuffer, framebufferIndex, mSwapChain.extent(), quad);
+            light->mMaterial.texture().transitionLayout(
+                vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eColorAttachmentOptimal, commandBuffer);
+        }
 
         framebufferIndex++;
         commandBuffer.end();

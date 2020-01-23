@@ -55,7 +55,7 @@ Material::Material(
     MaterialUsage materialUsage)
     : mDevice{device},
       mTexture{texture},
-      mFramebufferSet{device, swapChain, depthTexture, materialUsage},
+      mFramebufferSet{device, swapChain, depthTexture, &texture, materialUsage},
       mVertexShader{vertexShader},
       mFragmentShader{fragmentShader},
       mMaterialUsage{materialUsage},

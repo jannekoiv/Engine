@@ -9,10 +9,15 @@
 #include <vulkan/vulkan.hpp>
 
 vk::PipelineLayout createPipelineLayout(
-    Device& device, Material& material, vk::DescriptorSetLayout descriptorSetLayout)
+    Device& device, Material& material, vk::DescriptorSetLayout descriptorSetLayout, const MaterialUsage usage)
 {
-    std::array<vk::DescriptorSetLayout, 2> layouts = {
-        descriptorSetLayout, material.descriptorSet().layout()};
+    std::vector<vk::DescriptorSetLayout> layouts = {descriptorSetLayout};
+
+    if (usage != MaterialUsage::ShadowMap) {
+        layouts.push_back(material.descriptorSet().layout());
+    }
+
+    std::cout << "LAYOUTS " << layouts.size() << "\n";
 
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
     pipelineLayoutInfo.setLayoutCount = layouts.size();
@@ -26,7 +31,6 @@ vk::PipelineLayout createPipelineLayout(
 vk::Pipeline createPipeline(
     Device& device,
     Material& material,
-    vk::DescriptorSetLayout descriptorSetLayout,
     vk::VertexInputBindingDescription bindingDescription,
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
     vk::Extent2D swapChainExtent,
@@ -51,8 +55,7 @@ vk::Pipeline createPipeline(
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
     vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.vertexAttributeDescriptionCount =
-        static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
     vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
@@ -95,13 +98,11 @@ vk::Pipeline createPipeline(
     multisampling.alphaToOneEnable = false;
 
     vk::PipelineColorBlendAttachmentState colorBlendAttachment;
-    colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR |
-        vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
-        vk::ColorComponentFlagBits::eB;
+    colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+        vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eB;
     colorBlendAttachment.blendEnable = false;
 
-    std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments = {
-        colorBlendAttachment};
+    std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments = {colorBlendAttachment};
 
     vk::PipelineColorBlendStateCreateInfo colorBlending;
     colorBlending.logicOpEnable = false;
@@ -147,8 +148,7 @@ vk::Pipeline createPipeline(
     pipelineInfo.basePipelineHandle = nullptr;
     pipelineInfo.basePipelineIndex = -1;
 
-    vk::Pipeline pipeline =
-        static_cast<vk::Device>(device).createGraphicsPipeline(nullptr, pipelineInfo, nullptr);
+    vk::Pipeline pipeline = static_cast<vk::Device>(device).createGraphicsPipeline(nullptr, pipelineInfo, nullptr);
     return pipeline;
 }
 
@@ -160,15 +160,8 @@ Pipeline::Pipeline(
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
     const vk::Extent2D& swapChainExtent,
     const MaterialUsage usage)
-    : mPipelineLayout{createPipelineLayout(device, material, descriptorSetLayout)},
+    : mPipelineLayout{createPipelineLayout(device, material, descriptorSetLayout, usage)},
       mPipeline{createPipeline(
-          device,
-          material,
-          descriptorSetLayout,
-          bindingDescription,
-          attributeDescriptions,
-          swapChainExtent,
-          mPipelineLayout,
-          usage)}
+          device, material, bindingDescription, attributeDescriptions, swapChainExtent, mPipelineLayout, usage)}
 {
 }

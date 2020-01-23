@@ -19,7 +19,7 @@ class DirectionalLight;
 class Renderer {
 public:
     Renderer(Device& device, SwapChain& swapChain, Texture& depthTexture);
-    void createCommandBuffers(std::vector<Model>& models, Skybox& skybox, Quad& quad, DirectionalLight& light);
+    void createCommandBuffers(std::vector<Model>& models, Skybox& skybox, Quad& quad, DirectionalLight* light);
     void drawFrame();
 
 private:
