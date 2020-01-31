@@ -42,15 +42,17 @@ vk::Pipeline createPipeline(
     vertShaderStageInfo.module = material.vertexShader();
     vertShaderStageInfo.pName = "main";
 
-    vk::PipelineShaderStageCreateInfo fragShaderStageInfo;
-    fragShaderStageInfo.stage = vk::ShaderStageFlagBits::eFragment;
-    fragShaderStageInfo.module = material.fragmentShader();
-    fragShaderStageInfo.pName = "main";
-
-    vk::PipelineShaderStageCreateInfo shaderStages[] = {
+    std::vector<vk::PipelineShaderStageCreateInfo> shaderStages = {
         vertShaderStageInfo,
-        fragShaderStageInfo,
     };
+
+    if (usage != MaterialUsage::ShadowMap) {
+        vk::PipelineShaderStageCreateInfo fragShaderStageInfo;
+        fragShaderStageInfo.stage = vk::ShaderStageFlagBits::eFragment;
+        fragShaderStageInfo.module = material.fragmentShader();
+        fragShaderStageInfo.pName = "main";
+        shaderStages.push_back(fragShaderStageInfo);
+    }
 
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
     vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -111,7 +113,6 @@ vk::Pipeline createPipeline(
     colorBlending.pAttachments = colorBlendAttachments.data();
 
     vk::PipelineDepthStencilStateCreateInfo depthStencil;
-
     depthStencil.depthTestEnable = true;
     depthStencil.depthWriteEnable = true;
 
@@ -131,9 +132,15 @@ vk::Pipeline createPipeline(
     depthStencil.front = vk::StencilOpState{};
     depthStencil.back = vk::StencilOpState{};
 
+    if (usage == MaterialUsage::ShadowMap) {
+        depthStencil.depthCompareOp = vk::CompareOp::eLess;
+        depthStencil.depthTestEnable = true;
+        depthStencil.depthWriteEnable = true;
+    }
+
     vk::GraphicsPipelineCreateInfo pipelineInfo;
-    pipelineInfo.stageCount = 2;
-    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.stageCount = shaderStages.size();
+    pipelineInfo.pStages = shaderStages.data();
     pipelineInfo.pVertexInputState = &vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &inputAssembly;
     pipelineInfo.pViewportState = &viewportState;

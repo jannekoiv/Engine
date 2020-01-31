@@ -210,11 +210,11 @@ void Texture::transitionLayout(
         barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
         srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
         dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-        //} else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eGeneral) {
-        //    barrier.srcAccessMask = {};
-        //    barrier.dstAccessMask = {};
-        //    srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
-        //    dstStage = vk::PipelineStageFlagBits::eAllGraphics;
+    } else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eGeneral) {
+        barrier.srcAccessMask = {};
+        barrier.dstAccessMask = {};
+        srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
+        dstStage = vk::PipelineStageFlagBits::eAllGraphics;
     } else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
         barrier.srcAccessMask = {};
         barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;

@@ -49,7 +49,7 @@ public:
         Device& device,
         DescriptorManager& descriptorManager,
         SwapChain& swapChain,
-        Texture& depthTexture);
+        Texture& texture);
 
     Buffer& vertexBuffer()
     {

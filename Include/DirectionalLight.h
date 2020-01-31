@@ -4,8 +4,8 @@
 #include "../Include/DescriptorManager.h"
 #include "../Include/FramebufferSet.h"
 #include "../Include/Material.h"
-#include "../Include/Pipeline.h"
 #include "../Include/Model.h"
+#include "../Include/Pipeline.h"
 
 class Device;
 class FramebufferSet;
@@ -15,23 +15,32 @@ class Skybox;
 class SwapChain;
 class Texture;
 
+struct LightUniform {
+    glm::highp_mat4 world;
+    glm::highp_mat4 view;
+    glm::highp_mat4 proj;
+};
+
 class DirectionalLight {
 public:
     DirectionalLight(Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain);
     void createCommandBuffers(std::vector<Model>& models, vk::Extent2D swapChainExtent);
-
     void updateUniformBuffer();
     void drawFrame();
 
-//private:
+    Texture& depthTexture()
+    {
+        return mDepthTexture;
+    }
+
+    //private:
     Device& mDevice;
     SwapChain& mSwapChain;
     vk::CommandBuffer mCommandBuffer;
-    vk::Semaphore mImageAvailableSemaphore;
-    vk::Semaphore mRenderFinishedSemaphore;
-    glm::mat4 mWorldMatrix;
+    glm::mat4 mViewMatrix;
+    Texture mDepthTexture;
     Material mMaterial;
-    ModelUniform mUniform;
+    LightUniform mUniform;
     Buffer mUniformBuffer;
     DescriptorSet mDescriptorSet;
     Pipeline mPipeline;

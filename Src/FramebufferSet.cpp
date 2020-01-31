@@ -16,52 +16,45 @@ vk::RenderPass createRenderPass(Device& device, vk::Format swapChainFormat, Mate
 
     std::vector<vk::AttachmentReference> colorAttachmentRefs{{{0, vk::ImageLayout::eColorAttachmentOptimal}}};
 
-    //if (materialUsage != MaterialUsage::ShadowMap) {
-    vk::AttachmentDescription colorAttachment{};
-    colorAttachment.format = swapChainFormat;
-    colorAttachment.samples = vk::SampleCountFlagBits::e1;
+    if (materialUsage != MaterialUsage::ShadowMap) {
+        vk::AttachmentDescription colorAttachment{};
+        colorAttachment.format = swapChainFormat;
+        colorAttachment.samples = vk::SampleCountFlagBits::e1;
 
-    if (materialUsage == MaterialUsage::Clear) {
-        colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-    } else {
-        colorAttachment.loadOp = vk::AttachmentLoadOp::eLoad;
+        if (materialUsage == MaterialUsage::Clear) {
+            colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+        } else {
+            colorAttachment.loadOp = vk::AttachmentLoadOp::eLoad;
+        }
+
+        colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
+        colorAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+        colorAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+
+        if (materialUsage == MaterialUsage::Clear) {
+            colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
+        } else {
+            colorAttachment.initialLayout = vk::ImageLayout::ePresentSrcKHR;
+        }
+
+        colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
+
+        subpass.colorAttachmentCount = colorAttachmentRefs.size();
+        subpass.pColorAttachments = colorAttachmentRefs.data();
+
+        attachments.push_back(colorAttachment);
     }
 
-    colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
-    colorAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
-    colorAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-
-    if (materialUsage == MaterialUsage::Clear) {
-        colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
-    } else {
-        colorAttachment.initialLayout = vk::ImageLayout::ePresentSrcKHR;
-    }
-
-
-    colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
-
-    if (materialUsage == MaterialUsage::ShadowMap) {
-        colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-        colorAttachment.initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
-        colorAttachment.finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
-    }
-
-    subpass.colorAttachmentCount = colorAttachmentRefs.size();
-    subpass.pColorAttachments = colorAttachmentRefs.data();
-
-    attachments.push_back(colorAttachment);
-    //}
-
-    if (materialUsage != MaterialUsage::Quad && materialUsage != MaterialUsage::ShadowMap) {
+    if (materialUsage != MaterialUsage::Quad) {
         vk::AttachmentReference depthAttachmentRef{};
 
-        //if (materialUsage != MaterialUsage::ShadowMap) {
-        depthAttachmentRef.attachment = 1;
-        depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-        //} else {
-        //    depthAttachmentRef.attachment = 0;
-        //    depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-        //}
+        if (materialUsage != MaterialUsage::ShadowMap) {
+            depthAttachmentRef.attachment = 1;
+            depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+        } else {
+            depthAttachmentRef.attachment = 0;
+            depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+        }
 
         subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
@@ -75,6 +68,10 @@ vk::RenderPass createRenderPass(Device& device, vk::Format swapChainFormat, Mate
             depthAttachment.loadOp = vk::AttachmentLoadOp::eLoad;
         }
 
+        if (materialUsage == MaterialUsage::ShadowMap) {
+            depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+        }
+
         depthAttachment.storeOp = vk::AttachmentStoreOp::eStore;
         depthAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
         depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
@@ -85,6 +82,11 @@ vk::RenderPass createRenderPass(Device& device, vk::Format swapChainFormat, Mate
             depthAttachment.initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
         }
         depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+        if (materialUsage == MaterialUsage::ShadowMap) {
+            depthAttachment.initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+            depthAttachment.finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+        }
 
         attachments.push_back(depthAttachment);
     }
@@ -114,12 +116,11 @@ std::vector<vk::Framebuffer> createFramebuffers(
     Device& device,
     SwapChain& swapChain,
     Texture* depthTexture,
-    Texture* texture,
     vk::RenderPass renderPass,
     MaterialUsage materialUsage)
 {
     if (materialUsage == MaterialUsage::ShadowMap) {
-        std::vector<vk::ImageView> attachments = {texture->view()};
+        std::vector<vk::ImageView> attachments = {depthTexture->view()};
 
         vk::FramebufferCreateInfo framebufferInfo{};
         framebufferInfo.renderPass = renderPass;
@@ -157,9 +158,9 @@ std::vector<vk::Framebuffer> createFramebuffers(
 }
 
 FramebufferSet::FramebufferSet(
-    Device& device, SwapChain& swapChain, Texture* depthTexture, Texture* texture, MaterialUsage materialUsage)
+    Device& device, SwapChain& swapChain, Texture* depthTexture, MaterialUsage materialUsage)
     : mRenderPass{createRenderPass(device, swapChain.format(), materialUsage)},
-      mFramebuffers{createFramebuffers(device, swapChain, depthTexture, texture, mRenderPass, materialUsage)}
+      mFramebuffers{createFramebuffers(device, swapChain, depthTexture, mRenderPass, materialUsage)}
 {
 }
 

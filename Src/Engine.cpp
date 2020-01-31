@@ -20,7 +20,7 @@ Engine::Engine(const int width, const int height, const bool enableValidationLay
           mDevice,
           vk::ImageViewType::e2D,
           1,
-          vk::Extent3D{mSwapChain.extent()},
+          vk::Extent3D{mSwapChain.extent().width, mSwapChain.extent().height, 1},
           findDepthAttachmentFormat(mDevice),
           vk::ImageTiling::eOptimal,
           vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
@@ -30,20 +30,21 @@ Engine::Engine(const int width, const int height, const bool enableValidationLay
       mRenderer{mDevice, mSwapChain, mDepthTexture},
       mSkybox{mDevice, mDescriptorManager, mSwapChain, mDepthTexture},
       mLight{mDevice, mDescriptorManager, mSwapChain},
-      mQuad{mDevice, mDescriptorManager, mSwapChain, mLight.mMaterial.texture()}
+      mQuad{mDevice, mDescriptorManager, mSwapChain, mLight.depthTexture()}
 {
     std::cout << "Engine initialized\n";
 }
 
 Model Engine::createModelFromFile(std::string filename)
 {
-    return ::createModelFromFile(mDevice, mDescriptorManager, mSwapChain, &mDepthTexture, filename);
+    return ::createModelFromFile(
+        mDevice, mDescriptorManager, mSwapChain, mDepthTexture, &mLight.depthTexture(), filename);
 }
 
 void Engine::initRenderer(std::vector<Model>& models)
 {
-    mRenderer.createCommandBuffers(models, mSkybox, mQuad, &mLight);
     mLight.createCommandBuffers(models, mSwapChain.extent());
+    mRenderer.createCommandBuffers(models, mSkybox, mQuad, &mLight);
 }
 
 void Engine::drawFrame()

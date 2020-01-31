@@ -15,7 +15,7 @@ Renderer::Renderer(Device& device, SwapChain& swapChain, Texture& depthTexture)
     : mDevice{device},
       mSwapChain{swapChain},
       mDepthTexture{depthTexture},
-      mClearFramebufferSet{mDevice, mSwapChain, &mDepthTexture, nullptr, MaterialUsage::Clear},
+      mClearFramebufferSet{mDevice, mSwapChain, &mDepthTexture, MaterialUsage::Clear},
       mImageAvailableSemaphore{static_cast<vk::Device>(mDevice).createSemaphore({})},
       mRenderFinishedSemaphore{static_cast<vk::Device>(mDevice).createSemaphore({})}
 {
@@ -267,16 +267,17 @@ void Renderer::createCommandBuffers(std::vector<Model>& models, Skybox& skybox, 
             mClearFramebufferSet.frameBuffer(framebufferIndex),
             mSwapChain.extent());
 
-        drawModelsPass(commandBuffer, framebufferIndex, mSwapChain.extent(), models);
-        //drawSkyboxPass(commandBuffer, framebufferIndex, mSwapChain.extent(), skybox);
+        //light->drawModelsPass(commandBuffer, framebufferIndex, mSwapChain.extent(), models);
 
+        drawModelsPass(commandBuffer, framebufferIndex, mSwapChain.extent(), models);
+        drawSkyboxPass(commandBuffer, framebufferIndex, mSwapChain.extent(), skybox);
 
         if (light) {
-            light->mMaterial.texture().transitionLayout(
-                vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, commandBuffer);
             drawQuadPass(commandBuffer, framebufferIndex, mSwapChain.extent(), quad);
-            light->mMaterial.texture().transitionLayout(
-                vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eColorAttachmentOptimal, commandBuffer);
+            light->depthTexture().transitionLayout(
+                vk::ImageLayout::eShaderReadOnlyOptimal,
+                vk::ImageLayout::eDepthStencilAttachmentOptimal,
+                commandBuffer);
         }
 
         framebufferIndex++;

@@ -15,18 +15,15 @@ static Buffer createUniformBuffer(Device& device)
 static Buffer createVertexBuffer(Device& device)
 {
     std::array<SkyboxVertex, 36> vertices = {
-        {{{-1.0f, 1.0f, -1.0f}},  {{-1.0f, -1.0f, -1.0f}}, {{1.0f, -1.0f, -1.0f}},
-         {{1.0f, -1.0f, -1.0f}},  {{1.0f, 1.0f, -1.0f}},   {{-1.0f, 1.0f, -1.0f}},
-         {{-1.0f, -1.0f, 1.0f}},  {{-1.0f, -1.0f, -1.0f}}, {{-1.0f, 1.0f, -1.0f}},
-         {{-1.0f, 1.0f, -1.0f}},  {{-1.0f, 1.0f, 1.0f}},   {{-1.0f, -1.0f, 1.0f}},
-         {{1.0f, -1.0f, -1.0f}},  {{1.0f, -1.0f, 1.0f}},   {{1.0f, 1.0f, 1.0f}},
-         {{1.0f, 1.0f, 1.0f}},    {{1.0f, 1.0f, -1.0f}},   {{1.0f, -1.0f, -1.0f}},
-         {{-1.0f, -1.0f, 1.0f}},  {{-1.0f, 1.0f, 1.0f}},   {{1.0f, 1.0f, 1.0f}},
-         {{1.0f, 1.0f, 1.0f}},    {{1.0f, -1.0f, 1.0f}},   {{-1.0f, -1.0f, 1.0f}},
-         {{-1.0f, 1.0f, -1.0f}},  {{1.0f, 1.0f, -1.0f}},   {{1.0f, 1.0f, 1.0f}},
-         {{1.0f, 1.0f, 1.0f}},    {{-1.0f, 1.0f, 1.0f}},   {{-1.0f, 1.0f, -1.0f}},
-         {{-1.0f, -1.0f, -1.0f}}, {{-1.0f, -1.0f, 1.0f}},  {{1.0f, -1.0f, -1.0f}},
-         {{1.0f, -1.0f, -1.0f}},  {{-1.0f, -1.0f, 1.0f}},  {{1.0f, -1.0f, 1.0f}}}};
+        {{{-1.0f, 1.0f, -1.0f}}, {{-1.0f, -1.0f, -1.0f}}, {{1.0f, -1.0f, -1.0f}},  {{1.0f, -1.0f, -1.0f}},
+         {{1.0f, 1.0f, -1.0f}},  {{-1.0f, 1.0f, -1.0f}},  {{-1.0f, -1.0f, 1.0f}},  {{-1.0f, -1.0f, -1.0f}},
+         {{-1.0f, 1.0f, -1.0f}}, {{-1.0f, 1.0f, -1.0f}},  {{-1.0f, 1.0f, 1.0f}},   {{-1.0f, -1.0f, 1.0f}},
+         {{1.0f, -1.0f, -1.0f}}, {{1.0f, -1.0f, 1.0f}},   {{1.0f, 1.0f, 1.0f}},    {{1.0f, 1.0f, 1.0f}},
+         {{1.0f, 1.0f, -1.0f}},  {{1.0f, -1.0f, -1.0f}},  {{-1.0f, -1.0f, 1.0f}},  {{-1.0f, 1.0f, 1.0f}},
+         {{1.0f, 1.0f, 1.0f}},   {{1.0f, 1.0f, 1.0f}},    {{1.0f, -1.0f, 1.0f}},   {{-1.0f, -1.0f, 1.0f}},
+         {{-1.0f, 1.0f, -1.0f}}, {{1.0f, 1.0f, -1.0f}},   {{1.0f, 1.0f, 1.0f}},    {{1.0f, 1.0f, 1.0f}},
+         {{-1.0f, 1.0f, 1.0f}},  {{-1.0f, 1.0f, -1.0f}},  {{-1.0f, -1.0f, -1.0f}}, {{-1.0f, -1.0f, 1.0f}},
+         {{1.0f, -1.0f, -1.0f}}, {{1.0f, -1.0f, -1.0f}},  {{-1.0f, -1.0f, 1.0f}},  {{1.0f, -1.0f, 1.0f}}}};
 
     vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
@@ -51,8 +48,7 @@ static Buffer createVertexBuffer(Device& device)
     return vertexBuffer;
 }
 
-static DescriptorSet createDescriptorSet(
-    DescriptorManager& descriptorManager, vk::Buffer uniformBuffer)
+static DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, vk::Buffer uniformBuffer)
 {
     std::vector<vk::DescriptorSetLayoutBinding> bindings = {
         {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}};
@@ -69,12 +65,9 @@ static DescriptorSet createDescriptorSet(
 }
 
 static Material createMaterial(
-    Device& device,
-    DescriptorManager& descriptorManager,
-    SwapChain& swapChain,
-    Texture& depthTexture)
+    Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture& depthTexture)
 {
-    auto texture = createCubeTextureFromFile(device, "d:/skybox/left.jpg");
+    std::vector<Texture> textures{createCubeTextureFromFile(device, "d:/skybox/left.jpg")};
     auto vertexShader = createShaderFromFile(device, "d:/Shaders/skyboxvert.spv");
     auto fragmentShader = createShaderFromFile(device, "d:/Shaders/skyboxfrag.spv");
     return Material{
@@ -82,17 +75,13 @@ static Material createMaterial(
         descriptorManager,
         swapChain,
         &depthTexture,
-        texture,
+        textures,
         vertexShader,
         fragmentShader,
         MaterialUsage::Skybox};
 }
 
-Skybox::Skybox(
-    Device& device,
-    DescriptorManager& descriptorManager,
-    SwapChain& swapChain,
-    Texture& depthTexture)
+Skybox::Skybox(Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture& depthTexture)
     : mDevice{device},
       mVertexBuffer{createVertexBuffer(mDevice)},
       mUniformBuffer{createUniformBuffer(mDevice)},
@@ -113,8 +102,7 @@ Skybox::Skybox(
 
 void Skybox::updateUniformBuffer()
 {
-    void* data = static_cast<vk::Device>(mDevice).mapMemory(
-        mUniformBuffer.memory(), 0, sizeof(mUniform), {});
+    void* data = static_cast<vk::Device>(mDevice).mapMemory(mUniformBuffer.memory(), 0, sizeof(mUniform), {});
     memcpy(data, &mUniform, sizeof(SkyboxUniform));
     static_cast<vk::Device>(mDevice).unmapMemory(mUniformBuffer.memory());
 }

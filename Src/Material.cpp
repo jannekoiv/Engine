@@ -7,7 +7,7 @@
 
 Material::Material(Material&& rhs)
     : mDevice{rhs.mDevice},
-      mTexture{rhs.mTexture},
+      mTextures{rhs.mTextures},
       mDescriptorSet{rhs.mDescriptorSet},
       mFramebufferSet{rhs.mFramebufferSet},
       mVertexShader{rhs.mVertexShader},
@@ -25,12 +25,13 @@ DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, Material
 
     DescriptorSet descriptorSet = descriptorManager.createDescriptorSet(bindings);
 
-    vk::DescriptorImageInfo imageInfo;
-    imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-    imageInfo.imageView = material.texture().view();
-    imageInfo.sampler = material.texture().sampler();
-
-    descriptorSet.writeDescriptors({{0, 0, 1, &imageInfo}});
+    if (material.textureCount() > 0) {
+        vk::DescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+        imageInfo.imageView = material.texture(0).view();
+        imageInfo.sampler = material.texture(0).sampler();
+        descriptorSet.writeDescriptors({{0, 0, 1, &imageInfo}});
+    }
     return descriptorSet;
 }
 
@@ -49,13 +50,13 @@ Material::Material(
     DescriptorManager& descriptorManager,
     SwapChain& swapChain,
     Texture* depthTexture,
-    Texture& texture,
+    std::vector<Texture>& textures,
     vk::ShaderModule vertexShader,
     vk::ShaderModule fragmentShader,
     MaterialUsage materialUsage)
     : mDevice{device},
-      mTexture{texture},
-      mFramebufferSet{device, swapChain, depthTexture, &texture, materialUsage},
+      mTextures{textures},
+      mFramebufferSet{device, swapChain, depthTexture, materialUsage},
       mVertexShader{vertexShader},
       mFragmentShader{fragmentShader},
       mMaterialUsage{materialUsage},
@@ -87,17 +88,10 @@ Material createMaterialFromFile(
         throw std::runtime_error("Header file not matching!");
     }
 
-    auto texture = createTextureFromFile(device, readString(file));
+    std::vector<Texture> textures{createTextureFromFile(device, readString(file))};
     auto vertexShader = createShaderFromFile(device, readString(file));
     auto fragmentShader = createShaderFromFile(device, readString(file));
 
     return Material{
-        device,
-        descriptorManager,
-        swapChain,
-        depthTexture,
-        texture,
-        vertexShader,
-        fragmentShader,
-        materialUsage};
+        device, descriptorManager, swapChain, depthTexture, textures, vertexShader, fragmentShader, materialUsage};
 }

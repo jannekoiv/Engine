@@ -9,7 +9,7 @@ public:
     void initProjection(
         const float fov, const float aspectRatio, const float nearPlane, const float farPlane);
 
-    glm::mat4 viewMatrix()
+    const glm::mat4 viewMatrix()
     {
         return glm::inverse(mWorldMatrix);
     }

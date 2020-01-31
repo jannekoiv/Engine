@@ -10,8 +10,11 @@
 class Device;
 
 struct ModelUniform {
-    glm::highp_mat4 worldView;
+    glm::highp_mat4 world;
+    glm::highp_mat4 view;
     glm::highp_mat4 proj;
+    glm::highp_mat4 lightSpace;
+    glm::highp_vec3 lightDir;
 };
 
 struct ModelVertex {
@@ -66,7 +69,8 @@ public:
         glm::mat4 worldMatrix,
         std::vector<ModelVertex> vertices,
         std::vector<uint32_t> indices,
-        Material& material);
+        Material& material,
+        Texture* shadowMap);
 
     Buffer& vertexBuffer()
     {
@@ -105,7 +109,7 @@ public:
         return mUniform;
     }
 
-private:
+//private:
     Device& mDevice;
     glm::mat4 mWorldMatrix;
     Buffer mVertexBuffer;
@@ -123,5 +127,6 @@ Model createModelFromFile(
     Device& device,
     DescriptorManager& descriptorManager,
     SwapChain& swapChain,
-    Texture* depthTexture,
+    Texture& depthTexture,
+    Texture* shadowMap,
     std::string filename);

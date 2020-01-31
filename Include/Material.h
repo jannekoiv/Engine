@@ -14,7 +14,7 @@ public:
         DescriptorManager& descriptorManager,
         SwapChain& swapChain,
         Texture* depthTexture,
-        Texture& texture,
+        std::vector<Texture>& textures,
         vk::ShaderModule vertexShader,
         vk::ShaderModule fragmentShader,
         MaterialUsage materialUsage);
@@ -40,9 +40,9 @@ public:
         return mFragmentShader;
     }
 
-    Texture& texture()
+    Texture& texture(size_t index)
     {
-        return mTexture;
+        return mTextures[index];
     }
 
     DescriptorSet& descriptorSet()
@@ -55,9 +55,14 @@ public:
         return mMaterialUsage;
     }
 
+    size_t textureCount()
+    {
+        return mTextures.size();
+    }
+
 private:
     Device& mDevice;
-    Texture mTexture;
+    std::vector<Texture> mTextures;
     FramebufferSet mFramebufferSet;
     vk::ShaderModule mVertexShader;
     vk::ShaderModule mFragmentShader;
