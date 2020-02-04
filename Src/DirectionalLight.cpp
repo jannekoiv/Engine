@@ -20,34 +20,47 @@ static Material createMaterial(
         device, descriptorManager, swapChain, &depthTexture, textures, vertexShader, nullptr, MaterialUsage::ShadowMap};
 }
 
-static DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, vk::Buffer uniformBuffer)
+DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager)
 {
     std::vector<vk::DescriptorSetLayoutBinding> bindings = {
         {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}};
-
     DescriptorSet descriptorSet = descriptorManager.createDescriptorSet(bindings);
-
-    vk::DescriptorBufferInfo bufferInfo;
-    bufferInfo.buffer = uniformBuffer;
-    bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(LightUniform);
-
-    descriptorSet.writeDescriptors({{0, 0, 1, &bufferInfo}});
     return descriptorSet;
 }
 
-static Buffer createUniformBuffer(Device& device)
+//static std::vector<Buffer> createUniformBuffers(Device& device, size_t modelCount)
+//{
+//    std::vector<Buffer> buffers;
+//    for (int i = 0; i < modelCount; i++) {
+//        buffers.emplace_back(
+//            device,
+//            sizeof(LightUniform),
+//            vk::BufferUsageFlagBits::eUniformBuffer,
+//            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+//    }
+//    return buffers;
+//}
+
+static glm::mat4 orthoProjMatrix()
 {
-    return Buffer(
-        device,
-        sizeof(LightUniform),
-        vk::BufferUsageFlagBits::eUniformBuffer,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    const float sizeX = 200.0f;
+    const float sizeY = sizeX * 9.0f / 16.0f;
+    return glm::ortho(-sizeX, sizeX, sizeY, -sizeY, 1.0f, 400.0f);
+}
+
+static vk::CommandBuffer createCommandBuffer(Device& device)
+{
+    vk::CommandBufferAllocateInfo commandBufferInfo{device.commandPool(), vk::CommandBufferLevel::ePrimary, 1};
+    auto commandBuffer = static_cast<vk::Device>(device).allocateCommandBuffers(commandBufferInfo).front();
+    return commandBuffer;
 }
 
 DirectionalLight::DirectionalLight(Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain)
     : mDevice{device},
       mSwapChain{swapChain},
+      mCommandBuffer{createCommandBuffer(mDevice)},
+      mViewMatrix{},
+      mProjMatrix{orthoProjMatrix()},
       mDepthTexture{
           device,
           vk::ImageViewType::e2D,
@@ -59,12 +72,10 @@ DirectionalLight::DirectionalLight(Device& device, DescriptorManager& descriptor
           vk::MemoryPropertyFlagBits::eDeviceLocal,
           vk::SamplerAddressMode::eClampToEdge},
       mMaterial{createMaterial(mDevice, descriptorManager, swapChain, mDepthTexture)},
-      mUniformBuffer{createUniformBuffer(mDevice)},
-      mDescriptorSet{createDescriptorSet(descriptorManager, mUniformBuffer)},
       mPipeline{
           mDevice,
           mMaterial,
-          mDescriptorSet.layout(),
+          nullptr,
           ModelVertex::bindingDescription(),
           ModelVertex::attributeDescriptions(),
           swapChain.extent(),
@@ -73,15 +84,10 @@ DirectionalLight::DirectionalLight(Device& device, DescriptorManager& descriptor
     std::cout << "Light constructed\n";
 }
 
-void DirectionalLight::createCommandBuffers(std::vector<Model>& models, vk::Extent2D swapChainExtent)
+void DirectionalLight::drawFrame(std::vector<Model>& models, vk::Extent2D swapChainExtent)
 {
-    vk::CommandBufferAllocateInfo commandBufferInfo{mDevice.commandPool(), vk::CommandBufferLevel::ePrimary, 1};
-
-    mCommandBuffer = static_cast<vk::Device>(mDevice).allocateCommandBuffers(commandBufferInfo).front();
-
-    vk::CommandBufferBeginInfo beginInfo;
-    beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-    beginInfo.pInheritanceInfo = nullptr;
+    vk::CommandBufferBeginInfo beginInfo{};
+    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
     mCommandBuffer.begin(beginInfo);
 
     vk::RenderPassBeginInfo renderPassInfo;
@@ -97,31 +103,22 @@ void DirectionalLight::createCommandBuffers(std::vector<Model>& models, vk::Exte
 
     mCommandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
     mCommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline);
+
     for (Model& model : models) {
         mCommandBuffer.bindVertexBuffers(0, {model.vertexBuffer()}, {0});
         mCommandBuffer.bindIndexBuffer(model.indexBuffer(), 0, vk::IndexType::eUint32);
 
-        mCommandBuffer.bindDescriptorSets(
-            vk::PipelineBindPoint::eGraphics, mPipeline.layout(), 0, {mDescriptorSet}, nullptr);
+        glm::mat4 worldViewProj = mProjMatrix * mViewMatrix * model.uniform().world;
+        mCommandBuffer.pushConstants(mPipeline.layout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(float) * 16, &worldViewProj);
 
         mCommandBuffer.drawIndexed(static_cast<uint32_t>(model.indexCount()), 1, 0, 0, 0);
     }
 
     mCommandBuffer.endRenderPass();
     mCommandBuffer.end();
-}
 
-void DirectionalLight::drawFrame()
-{
-    updateUniformBuffer();
     vk::SubmitInfo submitInfo(0, nullptr, nullptr, 1, &mCommandBuffer, 0, nullptr);
     mDevice.graphicsQueue().submit(submitInfo, nullptr);
     mDevice.graphicsQueue().waitIdle();
-}
-
-void DirectionalLight::updateUniformBuffer()
-{
-    void* data = static_cast<vk::Device>(mDevice).mapMemory(mUniformBuffer.memory(), 0, sizeof(mUniform), {});
-    memcpy(data, &mUniform, sizeof(LightUniform));
-    static_cast<vk::Device>(mDevice).unmapMemory(mUniformBuffer.memory());
+    mCommandBuffer.reset({});
 }

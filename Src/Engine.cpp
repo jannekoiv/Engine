@@ -6,7 +6,7 @@ GLFWwindow* initWindow(const int width, const int height)
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    GLFWwindow* window = glfwCreateWindow(width, height, "Team Leprabakteeri Rendering Engine", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(width, height, "Totaalinen Yliruletus Rendering Engine", nullptr, nullptr);
     //glfwSetKeyCallback(window, keyCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     return window;
@@ -41,14 +41,25 @@ Model Engine::createModelFromFile(std::string filename)
         mDevice, mDescriptorManager, mSwapChain, mDepthTexture, &mLight.depthTexture(), filename);
 }
 
-void Engine::initRenderer(std::vector<Model>& models)
+void Engine::drawFrame(std::vector<Model>& models)
 {
-    mLight.createCommandBuffers(models, mSwapChain.extent());
-    mRenderer.createCommandBuffers(models, mSkybox, mQuad, &mLight);
-}
+    for (Model& model : models) {
+        model.uniform().view = mCamera.viewMatrix();
+        model.uniform().proj = mCamera.projMatrix();
 
-void Engine::drawFrame()
-{
-    mLight.drawFrame();
-    mRenderer.drawFrame();
+        model.uniform().lightSpace = mLight.projMatrix() * mLight.viewMatrix();
+        glm::mat4 world = mLight.worldMatrix();
+        model.uniform().lightDir = {world[2][0], world[2][1], world[2][2]};
+
+        model.updateUniformBuffer();
+    }
+
+    mSkybox.uniform().worldView = mCamera.viewMatrix();
+    mSkybox.uniform().proj = mCamera.projMatrix();
+    mSkybox.updateUniformBuffer();
+
+    mQuad.updateUniformBuffer();
+
+    mLight.drawFrame(models, mSwapChain.extent());
+    mRenderer.drawFrame(models, mSkybox, mQuad, mLight);
 }

@@ -10,11 +10,11 @@
 class Device;
 
 struct ModelUniform {
-    glm::highp_mat4 world;
-    glm::highp_mat4 view;
-    glm::highp_mat4 proj;
-    glm::highp_mat4 lightSpace;
-    glm::highp_vec3 lightDir;
+    glm::mat4 world;
+    glm::mat4 view;
+    glm::mat4 proj;
+    glm::mat4 lightSpace;
+    glm::vec3 lightDir;
 };
 
 struct ModelVertex {
@@ -109,14 +109,16 @@ public:
         return mUniform;
     }
 
-//private:
+    //private:
     Device& mDevice;
-    glm::mat4 mWorldMatrix;
     Buffer mVertexBuffer;
     Buffer mIndexBuffer;
     int mIndexCount;
     Buffer mUniformBuffer;
+private:
     ModelUniform mUniform;
+
+public:
     DescriptorManager& mDescriptorManager;
     DescriptorSet mDescriptorSet;
     Material mMaterial;

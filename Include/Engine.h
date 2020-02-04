@@ -11,12 +11,11 @@
 #include "../Include/Skybox.h"
 #include "../Include/SwapChain.h"
 #include "../Include/Texture.h"
+#include "../Include/Camera.h"
 
 class Engine {
 public:
     Engine(const int width, const int height, const bool enableValidationLayers);
-
-    void initRenderer(std::vector<Model>& models);
 
     void setKeyCallback(GLFWkeyfun callback)
     {
@@ -30,7 +29,13 @@ public:
         return mWindow;
     }
 
-    void drawFrame();
+    void drawFrame(std::vector<Model>& models);
+
+    Camera& camera()
+    {
+        return mCamera;
+    }
+    
 
     //    ~Engine();
     //
@@ -72,8 +77,8 @@ private:
     DescriptorManager mDescriptorManager;
     Renderer mRenderer;
 
-
 public:
+    Camera mCamera;
     Skybox mSkybox;
     DirectionalLight mLight;
     Quad mQuad;

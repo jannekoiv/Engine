@@ -80,7 +80,6 @@ public:
 
 private:
     Device& mDevice;
-    glm::mat4 mWorldMatrix;
     Buffer mVertexBuffer;
     Buffer mUniformBuffer;
     SkyboxUniform mUniform;

@@ -11,11 +11,23 @@
 #include <fstream>
 #include <iostream>
 
+std::vector<vk::CommandBuffer> createCommandBuffers(Device& device, SwapChain& swapChain)
+{
+    vk::CommandBufferAllocateInfo commandBufferInfo(
+        device.commandPool(), vk::CommandBufferLevel::ePrimary, swapChain.imageCount());
+
+    std::vector<vk::CommandBuffer> commandBuffers =
+        static_cast<vk::Device>(device).allocateCommandBuffers(commandBufferInfo);
+
+    return commandBuffers;
+}
+
 Renderer::Renderer(Device& device, SwapChain& swapChain, Texture& depthTexture)
     : mDevice{device},
       mSwapChain{swapChain},
       mDepthTexture{depthTexture},
       mClearFramebufferSet{mDevice, mSwapChain, &mDepthTexture, MaterialUsage::Clear},
+      mCommandBuffers{createCommandBuffers(device, swapChain)},
       mImageAvailableSemaphore{static_cast<vk::Device>(mDevice).createSemaphore({})},
       mRenderFinishedSemaphore{static_cast<vk::Device>(mDevice).createSemaphore({})}
 {
@@ -168,8 +180,13 @@ static void clearPass(
     commandBuffer.endRenderPass();
 }
 
+float t2 = 1.0f;
+
 static void drawModelsPass(
-    vk::CommandBuffer commandBuffer, int framebufferIndex, vk::Extent2D swapChainExtent, std::vector<Model>& models)
+    vk::CommandBuffer commandBuffer,
+    int framebufferIndex,
+    vk::Extent2D swapChainExtent,
+    std::vector<Model>& models)
 {
     for (Model& model : models) {
         vk::RenderPassBeginInfo renderPassInfo;
@@ -247,49 +264,32 @@ static void drawQuadPass(
     commandBuffer.endRenderPass();
 }
 
-void Renderer::createCommandBuffers(std::vector<Model>& models, Skybox& skybox, Quad& quad, DirectionalLight* light)
-{
-    vk::CommandBufferAllocateInfo commandBufferInfo(
-        mDevice.commandPool(), vk::CommandBufferLevel::ePrimary, mSwapChain.imageCount());
-
-    mCommandBuffers = static_cast<vk::Device>(mDevice).allocateCommandBuffers(commandBufferInfo);
-
-    size_t framebufferIndex = 0;
-    for (vk::CommandBuffer commandBuffer : mCommandBuffers) {
-        vk::CommandBufferBeginInfo beginInfo;
-        beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-        beginInfo.pInheritanceInfo = nullptr;
-        commandBuffer.begin(beginInfo);
-
-        clearPass(
-            commandBuffer,
-            mClearFramebufferSet.renderPass(),
-            mClearFramebufferSet.frameBuffer(framebufferIndex),
-            mSwapChain.extent());
-
-        //light->drawModelsPass(commandBuffer, framebufferIndex, mSwapChain.extent(), models);
-
-        drawModelsPass(commandBuffer, framebufferIndex, mSwapChain.extent(), models);
-        drawSkyboxPass(commandBuffer, framebufferIndex, mSwapChain.extent(), skybox);
-
-        if (light) {
-            drawQuadPass(commandBuffer, framebufferIndex, mSwapChain.extent(), quad);
-            light->depthTexture().transitionLayout(
-                vk::ImageLayout::eShaderReadOnlyOptimal,
-                vk::ImageLayout::eDepthStencilAttachmentOptimal,
-                commandBuffer);
-        }
-
-        framebufferIndex++;
-        commandBuffer.end();
-    }
-}
-
-void Renderer::drawFrame()
+void Renderer::drawFrame(std::vector<Model>& models, Skybox& skybox, Quad& quad, DirectionalLight& light)
 {
     uint32_t imageIndex = 0;
     static_cast<vk::Device>(mDevice).acquireNextImageKHR(
         mSwapChain, std::numeric_limits<uint64_t>::max(), mImageAvailableSemaphore, nullptr, &imageIndex);
+
+    vk::CommandBuffer commandBuffer = mCommandBuffers[imageIndex];
+
+    vk::CommandBufferBeginInfo beginInfo{};
+    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+    commandBuffer.begin(beginInfo);
+
+    clearPass(
+        commandBuffer,
+        mClearFramebufferSet.renderPass(),
+        mClearFramebufferSet.frameBuffer(imageIndex),
+        mSwapChain.extent());
+
+    drawModelsPass(commandBuffer, imageIndex, mSwapChain.extent(), models);
+    drawSkyboxPass(commandBuffer, imageIndex, mSwapChain.extent(), skybox);
+
+    //drawQuadPass(commandBuffer, imageIndex, mSwapChain.extent(), quad);
+    light.depthTexture().transitionLayout(
+        vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal, commandBuffer);
+
+    commandBuffer.end();
 
     vk::SubmitInfo submitInfo;
     vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
@@ -298,7 +298,7 @@ void Renderer::drawFrame()
     submitInfo.pWaitDstStageMask = waitStages;
 
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &mCommandBuffers[imageIndex];
+    submitInfo.pCommandBuffers = &commandBuffer;
 
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = &mRenderFinishedSemaphore;

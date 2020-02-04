@@ -11,20 +11,27 @@
 vk::PipelineLayout createPipelineLayout(
     Device& device, Material& material, vk::DescriptorSetLayout descriptorSetLayout, const MaterialUsage usage)
 {
-    std::vector<vk::DescriptorSetLayout> layouts = {descriptorSetLayout};
+    std::vector<vk::DescriptorSetLayout> layouts{};
+    if (descriptorSetLayout) {
+        layouts.push_back(descriptorSetLayout);
+    }
 
     if (usage != MaterialUsage::ShadowMap) {
         layouts.push_back(material.descriptorSet().layout());
     }
 
-    std::cout << "LAYOUTS " << layouts.size() << "\n";
+    vk::PushConstantRange pushConstantRange{};
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(float) * 16;
+    pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eVertex;
 
-    vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
+    vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.setLayoutCount = layouts.size();
     pipelineLayoutInfo.pSetLayouts = layouts.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-    vk::PipelineLayout pipelineLayout =
-        static_cast<vk::Device>(device).createPipelineLayout(pipelineLayoutInfo, nullptr);
+    vk::PipelineLayout pipelineLayout = static_cast<vk::Device>(device).createPipelineLayout(pipelineLayoutInfo);
     return pipelineLayout;
 }
 

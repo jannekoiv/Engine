@@ -98,7 +98,6 @@ Model::Model(
     Material& material,
     Texture* shadowMap)
     : mDevice(device),
-      mWorldMatrix(worldMatrix),
       mVertexBuffer(createVertexBuffer(mDevice, vertices)),
       mIndexBuffer(createIndexBuffer(mDevice, indices)),
       mIndexCount(indices.size()),
@@ -115,6 +114,7 @@ Model::Model(
           swapChainExtent,
           mMaterial.materialUsage()}
 {
+    mUniform.world = worldMatrix;
     std::cout << "Model constructor\n";
 }
 

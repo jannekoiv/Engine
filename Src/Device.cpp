@@ -42,19 +42,14 @@ std::vector<const char*> getRequiredExtensions(bool enableValidationLayers)
     return extensions;
 }
 
-vk::Instance createInstance(
-    bool enableValidationLayers, const std::vector<const char*>& validationLayers)
+vk::Instance createInstance(bool enableValidationLayers, const std::vector<const char*>& validationLayers)
 {
     if (enableValidationLayers && !checkValidationLayerSupport(validationLayers)) {
         throw std::runtime_error("Validation layer requested, but not available!");
     }
 
     vk::ApplicationInfo appInfo(
-        "Hello Triangle",
-        VK_MAKE_VERSION(1, 0, 0),
-        "No Engine",
-        VK_MAKE_VERSION(1, 0, 0),
-        VK_API_VERSION_1_0);
+        "Hello Triangle", VK_MAKE_VERSION(1, 0, 0), "No Engine", VK_MAKE_VERSION(1, 0, 0), VK_API_VERSION_1_0);
 
     auto extensions = getRequiredExtensions(enableValidationLayers);
     vk::InstanceCreateInfo createInfo(
@@ -95,8 +90,7 @@ VkResult CreateDebugReportCallbackEXT(
     const VkAllocationCallbacks* allocator,
     VkDebugReportCallbackEXT* callback)
 {
-    auto func = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(
-        instance, "vkCreateDebugReportCallbackEXT");
+    auto func = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
 
     if (func != nullptr) {
         return func(instance, createInfo, allocator, callback);
@@ -126,15 +120,13 @@ VkDebugReportCallbackEXT createDebugCallback(bool enableValidationLayers, vk::In
 vk::SurfaceKHR createSurface(vk::Instance& instance, GLFWwindow* window)
 {
     vk::SurfaceKHR surface;
-    if (glfwCreateWindowSurface(
-            instance, window, nullptr, reinterpret_cast<VkSurfaceKHR*>(&surface)) != VK_SUCCESS) {
+    if (glfwCreateWindowSurface(instance, window, nullptr, reinterpret_cast<VkSurfaceKHR*>(&surface)) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create window surface!");
     }
     return surface;
 }
 
-QueueFamilyIndices findQueueFamilies(
-    vk::SurfaceKHR surface, const vk::PhysicalDevice physicalDevice)
+QueueFamilyIndices findQueueFamilies(vk::SurfaceKHR surface, const vk::PhysicalDevice physicalDevice)
 {
     QueueFamilyIndices indices;
     auto queueFamilies = physicalDevice.getQueueFamilyProperties();
@@ -157,11 +149,9 @@ QueueFamilyIndices findQueueFamilies(
     return indices;
 }
 
-bool checkDeviceExtensionSupport(
-    const vk::PhysicalDevice& device, const std::vector<const char*>& deviceExtensions)
+bool checkDeviceExtensionSupport(const vk::PhysicalDevice& device, const std::vector<const char*>& deviceExtensions)
 {
-    std::vector<vk::ExtensionProperties> availableExtensions =
-        device.enumerateDeviceExtensionProperties(nullptr);
+    std::vector<vk::ExtensionProperties> availableExtensions = device.enumerateDeviceExtensionProperties(nullptr);
 
     std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
@@ -172,9 +162,7 @@ bool checkDeviceExtensionSupport(
 }
 
 bool isDeviceSuitable(
-    const vk::PhysicalDevice& physicalDevice,
-    vk::SurfaceKHR& surface,
-    const std::vector<const char*>& deviceExtensions)
+    const vk::PhysicalDevice& physicalDevice, vk::SurfaceKHR& surface, const std::vector<const char*>& deviceExtensions)
 {
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(surface, physicalDevice);
 
@@ -193,9 +181,7 @@ bool isDeviceSuitable(
 }
 
 vk::PhysicalDevice pickPhysicalDevice(
-    vk::Instance& instance,
-    vk::SurfaceKHR& surface,
-    const std::vector<const char*>& deviceExtensions)
+    vk::Instance& instance, vk::SurfaceKHR& surface, const std::vector<const char*>& deviceExtensions)
 {
     std::vector<vk::PhysicalDevice> devices = instance.enumeratePhysicalDevices();
     if (devices.size() == 0) {
@@ -257,7 +243,8 @@ vk::Device createLogicalDevice(
 
 vk::CommandPool createCommandPool(QueueFamilyIndices queueFamilyIndices, vk::Device device)
 {
-    vk::CommandPoolCreateInfo commandPoolInfo({}, queueFamilyIndices.graphics);
+    vk::CommandPoolCreateInfo commandPoolInfo(
+        vk::CommandPoolCreateFlagBits::eResetCommandBuffer, queueFamilyIndices.graphics);
     vk::CommandPool commandPool = device.createCommandPool(commandPoolInfo);
     return commandPool;
 }
@@ -272,20 +259,14 @@ const std::vector<const char*> deviceExtensions()
     return {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 }
 
-Device::Device(
-    GLFWwindow* window,
-    bool enableValidationLayers)
+Device::Device(GLFWwindow* window, bool enableValidationLayers)
     : mInstance(createInstance(enableValidationLayers, validationLayers())),
       mDebugCallback(createDebugCallback(enableValidationLayers, mInstance)),
       mSurface(createSurface(mInstance, window)),
       mPhysicalDevice(pickPhysicalDevice(mInstance, mSurface, deviceExtensions())),
       mQueueFamilyIndices(findQueueFamilies(mSurface, mPhysicalDevice)),
       mDevice(createLogicalDevice(
-          mPhysicalDevice,
-          mQueueFamilyIndices,
-          enableValidationLayers,
-          validationLayers(),
-          deviceExtensions())),
+          mPhysicalDevice, mQueueFamilyIndices, enableValidationLayers, validationLayers(), deviceExtensions())),
       mGraphicsQueue(mDevice.getQueue(mQueueFamilyIndices.graphics, 0)),
       mPresentQueue(mDevice.getQueue(mQueueFamilyIndices.present, 0)),
       mCommandPool(createCommandPool(mQueueFamilyIndices, mDevice))
@@ -301,8 +282,7 @@ uint32_t Device::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags pro
     vk::PhysicalDeviceMemoryProperties memProperties = mPhysicalDevice.getMemoryProperties();
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-        if ((typeFilter & (1 << i)) &&
-            (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
             return i;
         }
     }
@@ -328,19 +308,14 @@ void Device::flushAndFreeCommandBuffer(vk::CommandBuffer commandBuffer)
 }
 
 vk::Format Device::findSupportedFormat(
-    const std::vector<vk::Format>& candidates,
-    vk::ImageTiling tiling,
-    vk::FormatFeatureFlags features)
+    const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features)
 {
     for (vk::Format format : candidates) {
         vk::FormatProperties properties = mPhysicalDevice.getFormatProperties(format);
 
-        if (tiling == vk::ImageTiling::eLinear &&
-            (properties.linearTilingFeatures & features) == features) {
+        if (tiling == vk::ImageTiling::eLinear && (properties.linearTilingFeatures & features) == features) {
             return format;
-        } else if (
-            tiling == vk::ImageTiling::eOptimal &&
-            (properties.optimalTilingFeatures & features) == features) {
+        } else if (tiling == vk::ImageTiling::eOptimal && (properties.optimalTilingFeatures & features) == features) {
             return format;
         }
     }
