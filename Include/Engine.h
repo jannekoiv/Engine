@@ -7,7 +7,6 @@
 #include "../Include/Model.h"
 #include "../Include/Quad.h"
 #include "../Include/Renderer.h"
-#include "../Include/Semaphore.h"
 #include "../Include/Skybox.h"
 #include "../Include/SwapChain.h"
 #include "../Include/Texture.h"
