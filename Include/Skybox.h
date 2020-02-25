@@ -10,8 +10,9 @@
 class Device;
 
 struct SkyboxUniform {
-    glm::highp_mat4 worldView;
-    glm::highp_mat4 proj;
+    glm::mat4 world;
+    glm::mat4 view;
+    glm::mat4 proj;
 };
 
 struct SkyboxVertex {
@@ -45,11 +46,7 @@ public:
     Skybox& operator=(const Skybox&) = delete;
     Skybox& operator=(Skybox&&) = default;
 
-    Skybox(
-        Device& device,
-        DescriptorManager& descriptorManager,
-        SwapChain& swapChain,
-        Texture& depthTexture);
+    Skybox(Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture& depthTexture);
 
     Buffer& vertexBuffer()
     {
@@ -71,11 +68,16 @@ public:
         return mDescriptorSet;
     }
 
-    void updateUniformBuffer();
+    void updateUniformBuffer(const glm::mat4& viewMatrix, const glm::mat4& projMatrix);
 
-    SkyboxUniform& uniform()
+    const glm::mat4& worldMatrix() const
     {
-        return mUniform;
+        return mUniform.world;
+    }
+
+    void setWorldMatrix(const glm::mat4& worldMatrix)
+    {
+        mUniform.world = worldMatrix;
     }
 
 private:
@@ -88,4 +90,3 @@ private:
     Material mMaterial;
     Pipeline mPipeline;
 };
-

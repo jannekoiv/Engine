@@ -66,10 +66,18 @@ static Material createMaterial(
 
     std::cout << "creating material\n";
 
-    std::vector<Texture> textures{texture};
+    std::vector<Texture> textures{};
+    textures.push_back(std::move(texture));
 
     return Material{
-        device, descriptorManager, swapChain, nullptr, textures, vertexShader, fragmentShader, MaterialUsage::Quad};
+        device,
+        descriptorManager,
+        swapChain,
+        nullptr,
+        std::move(textures),
+        vertexShader,
+        fragmentShader,
+        MaterialUsage::Quad};
 }
 
 Quad::Quad(Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture& texture)

@@ -1,6 +1,6 @@
 #pragma once
 
-#define VULKAN_HPP_NO_SMART_HANDLE
+//#define VULKAN_HPP_NO_SMART_HANDLE
 
 #include <Windows.h>
 #include <vulkan/vulkan.hpp>
@@ -10,6 +10,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <GLFW/glfw3.h>
 #include <iostream>
 

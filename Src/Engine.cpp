@@ -43,21 +43,17 @@ Model Engine::createModelFromFile(std::string filename)
 
 void Engine::drawFrame(std::vector<Model>& models)
 {
+    mCamera.update();
+    const glm::mat4& world = mLight.worldMatrix();
     for (Model& model : models) {
-        model.uniform().view = mCamera.viewMatrix();
-        model.uniform().proj = mCamera.projMatrix();
-
-        model.uniform().lightSpace = mLight.projMatrix() * mLight.viewMatrix();
-        glm::mat4 world = mLight.worldMatrix();
-        model.uniform().lightDir = {world[2][0], world[2][1], world[2][2]};
-
-        model.updateUniformBuffer();
+        model.updateUniformBuffer(
+            mCamera.viewMatrix(),
+            mCamera.projMatrix(),
+            mLight.projMatrix() * mLight.viewMatrix(),
+            {world[2][0], world[2][1], world[2][2]});
     }
 
-    mSkybox.uniform().worldView = mCamera.viewMatrix();
-    mSkybox.uniform().proj = mCamera.projMatrix();
-    mSkybox.updateUniformBuffer();
-
+    mSkybox.updateUniformBuffer(glm::mat4(glm::mat3(mCamera.viewMatrix())), mCamera.projMatrix());
     mQuad.updateUniformBuffer();
 
     mLight.drawFrame(models, mSwapChain.extent());

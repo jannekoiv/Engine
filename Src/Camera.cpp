@@ -13,38 +13,48 @@ void Camera::initProjection(const float fov, const float aspectRatio, const floa
 
 const float fov = 45.0f;
 const float aspectRatio = 16.0f / 9.0f;
-//const float nearPlane = 0.1f;
-//const float farPlane = 500.0f;
-const float nearPlane = 1.0f;
+const float nearPlane = 0.1f;
 const float farPlane = 400.0f;
 
 Camera::Camera() : mWorldMatrix{glm::mat4(1.0f)}
 {
     initProjection(fov, aspectRatio, nearPlane, farPlane);
-    mWorldMatrix = glm::translate(mWorldMatrix, glm::vec3(0.0f, 0.0f, 250.0f));
 }
 
 void Camera::moveHorizontal(float distance)
 {
-    mWorldMatrix = glm::translate(mWorldMatrix, glm::vec3(distance, 0.0f, 0.0f));
+    mPosition += glm::vec3{mWorldMatrix[0][0], mWorldMatrix[0][1], mWorldMatrix[0][2]} * distance;
 }
 
 void Camera::moveVertical(float distance)
 {
-    mWorldMatrix = glm::translate(mWorldMatrix, glm::vec3(0.0f, distance, 0.0f));
+    mPosition += glm::vec3{mWorldMatrix[1][0], mWorldMatrix[1][1], mWorldMatrix[1][2]} * distance;
 }
 
 void Camera::moveDiagonal(float distance)
 {
-    mWorldMatrix = glm::translate(mWorldMatrix, glm::vec3(0.0f, 0.0f, distance));
+    mPosition += glm::vec3{mWorldMatrix[2][0], mWorldMatrix[2][1], mWorldMatrix[2][2]} * distance;
 }
 
 void Camera::Yaw(float angle)
 {
-    mWorldMatrix = glm::rotate(mWorldMatrix, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+    mYaw += angle;
 }
 
 void Camera::Pitch(float angle)
 {
-    mWorldMatrix = glm::rotate(mWorldMatrix, angle, glm::vec3(1.0f, 0.0f, 0.0f));
+    mPitch += angle;
 }
+
+void Camera::update()
+{
+    auto t = glm::translate(glm::mat4{1.0f}, mPosition);
+    auto yaw = glm::rotate(glm::mat4{1.0f}, mYaw, glm::vec3{0.0f, 1.0f, 0.0f});
+    auto pitch = glm::rotate(glm::mat4{1.0f}, mPitch, glm::vec3{1.0f, 0.0f, 0.0f});
+    mWorldMatrix = t * yaw * pitch;
+}
+
+
+
+
+

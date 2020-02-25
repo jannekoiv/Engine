@@ -68,8 +68,10 @@ static Material createMaterial(
     Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture& depthTexture)
 {
     std::vector<Texture> textures{createCubeTextureFromFile(device, "d:/skybox/left.jpg")};
+
     auto vertexShader = createShaderFromFile(device, "d:/Shaders/skyboxvert.spv");
     auto fragmentShader = createShaderFromFile(device, "d:/Shaders/skyboxfrag.spv");
+
     return Material{
         device,
         descriptorManager,
@@ -97,12 +99,18 @@ Skybox::Skybox(Device& device, DescriptorManager& descriptorManager, SwapChain& 
           swapChain.extent(),
           mMaterial.materialUsage()}
 {
+    mUniform.world = glm::mat4{1.0f};
     std::cout << "Skybox initialized\n";
 }
 
-void Skybox::updateUniformBuffer()
+void Skybox::updateUniformBuffer(const glm::mat4& viewMatrix, const glm::mat4& projMatrix)
 {
-    void* data = static_cast<vk::Device>(mDevice).mapMemory(mUniformBuffer.memory(), 0, sizeof(mUniform), {});
+    mUniform.view = viewMatrix;
+    mUniform.proj = projMatrix;
+    void* data = mUniformBuffer.mapMemory();
     memcpy(data, &mUniform, sizeof(SkyboxUniform));
-    static_cast<vk::Device>(mDevice).unmapMemory(mUniformBuffer.memory());
+    mUniformBuffer.unmapMemory();
 }
+
+
+

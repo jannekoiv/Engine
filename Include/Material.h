@@ -14,14 +14,25 @@ public:
         DescriptorManager& descriptorManager,
         SwapChain& swapChain,
         Texture* depthTexture,
-        std::vector<Texture>& textures,
+        std::vector<Texture> textures,
         vk::ShaderModule vertexShader,
         vk::ShaderModule fragmentShader,
         MaterialUsage materialUsage);
 
-    Material(const Material& rhs) = delete;
+    //Material(const Material& rhs) = delete;
 
-    Material(Material&& rhs);
+    Material(Material&& rhs)
+        : mDevice{rhs.mDevice},
+          mTextures{std::move(rhs.mTextures)},
+          mDescriptorSet{rhs.mDescriptorSet},
+          mFramebufferSet{rhs.mFramebufferSet},
+          mVertexShader{rhs.mVertexShader},
+          mFragmentShader{rhs.mFragmentShader},
+          mMaterialUsage{rhs.mMaterialUsage}
+    {
+        //rhs.mVertexShader = nullptr;
+        //rhs.mFragmentShader = nullptr;
+    }
 
     ~Material();
 
@@ -32,7 +43,7 @@ public:
 
     vk::ShaderModule vertexShader()
     {
-        return mVertexShader;
+        return std::move(mVertexShader);
     }
 
     vk::ShaderModule fragmentShader()

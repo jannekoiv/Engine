@@ -126,7 +126,7 @@ vk::Sampler createSampler(vk::Device device, vk::SamplerAddressMode addressMode)
 
     samplerInfo.anisotropyEnable = true;
     samplerInfo.maxAnisotropy = 16;
-    samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
+    samplerInfo.borderColor = vk::BorderColor::eFloatOpaqueWhite;
     samplerInfo.unnormalizedCoordinates = false;
 
     samplerInfo.compareEnable = false;
@@ -350,7 +350,7 @@ void Texture::transitionLayout(
     }
 }
 
-Texture createTextureFromFile(Device& device, std::string filename)
+Texture createTextureFromFile(Device& device, std::string filename, vk::SamplerAddressMode addressMode)
 {
     const int bytesPerPixel = 4;
     int width = 0;
@@ -384,7 +384,7 @@ Texture createTextureFromFile(Device& device, std::string filename)
         vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled,
         vk::MemoryPropertyFlagBits::eDeviceLocal,
-        vk::SamplerAddressMode::eRepeat};
+        addressMode};
 
     texture.transitionLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
     stagingBuffer.copyToTexture(texture, 0);

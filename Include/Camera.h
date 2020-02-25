@@ -9,6 +9,16 @@ public:
     void initProjection(
         const float fov, const float aspectRatio, const float nearPlane, const float farPlane);
 
+    const glm::mat4 worldMatrix()
+    {
+        return mWorldMatrix;
+    }
+
+    void setWorldMatrix(glm::mat4 worldMatrix)
+    {
+        mWorldMatrix = worldMatrix;
+    }
+
     const glm::mat4 viewMatrix()
     {
         return glm::inverse(mWorldMatrix);
@@ -25,7 +35,13 @@ public:
 
     void Yaw(float angle);
     void Pitch(float angle);
+
+    void update();
+
 private:
+    glm::vec3 mPosition;
+    float mYaw;
+    float mPitch;
     glm::mat4 mWorldMatrix;
     glm::mat4 mProjMatrix;
 };

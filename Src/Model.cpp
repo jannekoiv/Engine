@@ -96,11 +96,15 @@ Model::Model(
     std::vector<ModelVertex> vertices,
     std::vector<uint32_t> indices,
     Material& material,
-    Texture* shadowMap)
+    Texture* shadowMap,
+    std::vector<glm::mat4> keyframes)
     : mDevice(device),
       mVertexBuffer(createVertexBuffer(mDevice, vertices)),
       mIndexBuffer(createIndexBuffer(mDevice, indices)),
+      mVertices{vertices},
       mIndexCount(indices.size()),
+      mIndices{indices},
+      mUniform{},
       mUniformBuffer(createUniformBuffer(mDevice)),
       mDescriptorManager(descriptorManager),
       mDescriptorSet(createDescriptorSet(mDescriptorManager, mUniformBuffer, shadowMap)),
@@ -112,17 +116,28 @@ Model::Model(
           ModelVertex::bindingDescription(),
           ModelVertex::attributeDescriptions(),
           swapChainExtent,
-          mMaterial.materialUsage()}
+          mMaterial.materialUsage()},
+      mKeyframes{keyframes},
+      mIKeyframe{-1}
 {
     mUniform.world = worldMatrix;
     std::cout << "Model constructor\n";
 }
 
-void Model::updateUniformBuffer()
+void Model::updateUniformBuffer(
+    const glm::mat4& viewMatrix, const glm::mat4& projMatrix, const glm::mat4& lightSpace, const glm::vec3& lightDir)
 {
-    void* data = static_cast<vk::Device>(mDevice).mapMemory(mUniformBuffer.memory(), 0, sizeof(mUniform), {});
+    if (mIKeyframe >= 0) {
+        mUniform.world = mKeyframes[mIKeyframe];
+    }
+    mUniform.view = viewMatrix;
+    mUniform.proj = projMatrix;
+    mUniform.lightSpace = lightSpace;
+    mUniform.lightDir = lightDir;
+
+    void* data = mUniformBuffer.mapMemory();
     memcpy(data, &mUniform, sizeof(ModelUniform));
-    static_cast<vk::Device>(mDevice).unmapMemory(mUniformBuffer.memory());
+    mUniformBuffer.unmapMemory();
 }
 
 Model createModelFromFile(
@@ -172,7 +187,17 @@ Model createModelFromFile(
     Material material = createMaterialFromFile(
         device, descriptorManager, swapChain, &depthTexture, materialFilename, MaterialUsage::Model);
 
-    file.close();
+    uint32_t keyframeCount = readInt(file);
+    std::cout << "keyframeCount " << keyframeCount << "\n";
+    std::vector<glm::mat4> keyframes(keyframeCount);
+    for (int i = 0; i < keyframeCount; ++i) {
+        file.read(reinterpret_cast<char*>(&keyframes[i]), sizeof(glm::mat4));
+        keyframes[i][3][0] *= 0.001f;
+        keyframes[i][3][1] *= 0.001f;
+        keyframes[i][3][2] *= 0.001f;
+    }
 
-    return Model{device, descriptorManager, swapChain.extent(), worldMatrix, vertices, indices, material, shadowMap};
+    file.close();
+    return Model{
+        device, descriptorManager, swapChain.extent(), worldMatrix, vertices, indices, material, shadowMap, keyframes};
 }

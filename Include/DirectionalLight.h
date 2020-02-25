@@ -30,22 +30,27 @@ public:
         return mProjMatrix;
     }
 
-    const glm::mat4& viewMatrix() const
+    glm::mat4 viewMatrix() const
     {
-        return mViewMatrix;
+        return glm::inverse(mWorldMatrix);
     }
 
-    const glm::mat4 worldMatrix() const
+    const glm::mat4& worldMatrix() const
     {
-        return glm::inverse(mViewMatrix);
+        return mWorldMatrix;
+    }
+
+    void setWorldMatrix(const glm::mat4& worldMatrix)
+    {
+        mWorldMatrix = worldMatrix;
     }
 
     //private:
     Device& mDevice;
     SwapChain& mSwapChain;
     vk::CommandBuffer mCommandBuffer;
+    glm::mat4 mWorldMatrix;
     glm::mat4 mProjMatrix;
-    glm::mat4 mViewMatrix;
     Texture mDepthTexture;
     Material mMaterial;
     Pipeline mPipeline;

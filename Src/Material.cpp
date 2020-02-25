@@ -5,18 +5,6 @@
 #include "../Include/Device.h"
 #include <fstream>
 
-Material::Material(Material&& rhs)
-    : mDevice{rhs.mDevice},
-      mTextures{rhs.mTextures},
-      mDescriptorSet{rhs.mDescriptorSet},
-      mFramebufferSet{rhs.mFramebufferSet},
-      mVertexShader{rhs.mVertexShader},
-      mFragmentShader{rhs.mFragmentShader},
-      mMaterialUsage{rhs.mMaterialUsage}
-{
-    rhs.mVertexShader = nullptr;
-    rhs.mFragmentShader = nullptr;
-}
 
 DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, Material& material)
 {
@@ -50,12 +38,12 @@ Material::Material(
     DescriptorManager& descriptorManager,
     SwapChain& swapChain,
     Texture* depthTexture,
-    std::vector<Texture>& textures,
+    std::vector<Texture> textures,
     vk::ShaderModule vertexShader,
     vk::ShaderModule fragmentShader,
     MaterialUsage materialUsage)
     : mDevice{device},
-      mTextures{textures},
+      mTextures{std::move(textures)},
       mFramebufferSet{device, swapChain, depthTexture, materialUsage},
       mVertexShader{vertexShader},
       mFragmentShader{fragmentShader},
@@ -66,7 +54,7 @@ Material::Material(
 
 Material::~Material()
 {
-    static_cast<vk::Device>(mDevice).destroyShaderModule(mVertexShader);
+    //static_cast<vk::Device>(mDevice).destroyShaderModule(mVertexShader);
 }
 
 Material createMaterialFromFile(
@@ -88,10 +76,18 @@ Material createMaterialFromFile(
         throw std::runtime_error("Header file not matching!");
     }
 
-    std::vector<Texture> textures{createTextureFromFile(device, readString(file))};
+    std::vector<Texture> textures{};
+    textures.push_back(createTextureFromFile(device, readString(file), vk::SamplerAddressMode::eRepeat));
     auto vertexShader = createShaderFromFile(device, readString(file));
     auto fragmentShader = createShaderFromFile(device, readString(file));
 
     return Material{
-        device, descriptorManager, swapChain, depthTexture, textures, vertexShader, fragmentShader, materialUsage};
+        device,
+        descriptorManager,
+        swapChain,
+        depthTexture,
+        textures,
+        vertexShader,
+        fragmentShader,
+        materialUsage};
 }

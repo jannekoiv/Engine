@@ -70,7 +70,8 @@ public:
         std::vector<ModelVertex> vertices,
         std::vector<uint32_t> indices,
         Material& material,
-        Texture* shadowMap);
+        Texture* shadowMap,
+        std::vector<glm::mat4> keyframes);
 
     Buffer& vertexBuffer()
     {
@@ -102,27 +103,52 @@ public:
         return mIndexCount;
     }
 
-    void updateUniformBuffer();
+    void updateUniformBuffer(
+        const glm::mat4& viewMatrix,
+        const glm::mat4& projMatrix,
+        const glm::mat4& lightSpace,
+        const glm::vec3& lightDir);
 
-    ModelUniform& uniform()
+    const glm::mat4& worldMatrix() const
     {
-        return mUniform;
+        return mUniform.world;
     }
 
-    //private:
+    void setWorldMatrix(const glm::mat4& worldMatrix)
+    {
+        mUniform.world = worldMatrix;
+    }
+
+    uint32_t index(int index)
+    {
+        return mIndices[index];
+    }
+
+    ModelVertex vertex(size_t index)
+    {
+        return mVertices[index];
+    }
+
+    void setKeyframe(int iKeyframe)
+    {
+        mIKeyframe = iKeyframe;
+    }
+
+private:
     Device& mDevice;
     Buffer mVertexBuffer;
     Buffer mIndexBuffer;
+    std::vector<ModelVertex> mVertices;
     int mIndexCount;
-    Buffer mUniformBuffer;
-private:
+    std::vector<uint32_t> mIndices;
     ModelUniform mUniform;
-
-public:
+    Buffer mUniformBuffer;
     DescriptorManager& mDescriptorManager;
     DescriptorSet mDescriptorSet;
     Material mMaterial;
     Pipeline mPipeline;
+    std::vector<glm::mat4> mKeyframes;
+    int mIKeyframe;
 };
 
 Model createModelFromFile(

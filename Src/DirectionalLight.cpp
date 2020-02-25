@@ -11,13 +11,20 @@
 #include <iostream>
 
 static Material createMaterial(
-    Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture depthTexture)
+    Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture& depthTexture)
 {
     auto vertexShader = createShaderFromFile(device, "d:/Shaders/shadowvert.spv");
     depthTexture.transitionLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
     std::vector<Texture> textures{};
     return Material{
-        device, descriptorManager, swapChain, &depthTexture, textures, vertexShader, nullptr, MaterialUsage::ShadowMap};
+        device,
+        descriptorManager,
+        swapChain,
+        &depthTexture,
+        textures,
+        vertexShader,
+        nullptr,
+        MaterialUsage::ShadowMap};
 }
 
 DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager)
@@ -43,9 +50,9 @@ DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager)
 
 static glm::mat4 orthoProjMatrix()
 {
-    const float sizeX = 200.0f;
-    const float sizeY = sizeX * 9.0f / 16.0f;
-    return glm::ortho(-sizeX, sizeX, sizeY, -sizeY, 1.0f, 400.0f);
+    const float sizeX = 20.0f;
+    const float sizeY = 9.f / 16.f * sizeX;
+    return glm::ortho(-sizeX, sizeX, sizeY, -sizeY, 1.f, 50.f);
 }
 
 static vk::CommandBuffer createCommandBuffer(Device& device)
@@ -59,7 +66,7 @@ DirectionalLight::DirectionalLight(Device& device, DescriptorManager& descriptor
     : mDevice{device},
       mSwapChain{swapChain},
       mCommandBuffer{createCommandBuffer(mDevice)},
-      mViewMatrix{},
+      mWorldMatrix{},
       mProjMatrix{orthoProjMatrix()},
       mDepthTexture{
           device,
@@ -70,7 +77,7 @@ DirectionalLight::DirectionalLight(Device& device, DescriptorManager& descriptor
           vk::ImageTiling::eOptimal,
           vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eDepthStencilAttachment,
           vk::MemoryPropertyFlagBits::eDeviceLocal,
-          vk::SamplerAddressMode::eClampToEdge},
+          vk::SamplerAddressMode::eClampToBorder},
       mMaterial{createMaterial(mDevice, descriptorManager, swapChain, mDepthTexture)},
       mPipeline{
           mDevice,
@@ -108,8 +115,9 @@ void DirectionalLight::drawFrame(std::vector<Model>& models, vk::Extent2D swapCh
         mCommandBuffer.bindVertexBuffers(0, {model.vertexBuffer()}, {0});
         mCommandBuffer.bindIndexBuffer(model.indexBuffer(), 0, vk::IndexType::eUint32);
 
-        glm::mat4 worldViewProj = mProjMatrix * mViewMatrix * model.uniform().world;
-        mCommandBuffer.pushConstants(mPipeline.layout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(float) * 16, &worldViewProj);
+        glm::mat4 worldViewProj = mProjMatrix * viewMatrix() * model.worldMatrix();
+        mCommandBuffer.pushConstants(
+            mPipeline.layout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(float) * 16, &worldViewProj);
 
         mCommandBuffer.drawIndexed(static_cast<uint32_t>(model.indexCount()), 1, 0, 0, 0);
     }
