@@ -64,6 +64,7 @@ static Buffer createIndexBuffer(Device& device, std::vector<uint32_t>& indices)
 static DescriptorSet createDescriptorSet(
     DescriptorManager& descriptorManager, vk::Buffer uniformBuffer, Texture* shadowMap)
 {
+    std::cout << "Creating model descriptor set\n";
     std::vector<vk::DescriptorSetLayoutBinding> bindings = {
         {0,
          vk::DescriptorType::eUniformBuffer,
@@ -80,12 +81,13 @@ static DescriptorSet createDescriptorSet(
 
     vk::DescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-    imageInfo.imageView = shadowMap->view();
+    imageInfo.imageView = shadowMap->imageView();
     imageInfo.sampler = shadowMap->sampler();
 
     std::vector<DescriptorWrite> writes = {{0, 0, 1, &bufferInfo}, {1, 0, 1, &imageInfo}};
     descriptorSet.writeDescriptors(writes);
     return descriptorSet;
+    std::cout << "Model descriptor set created.\n";
 }
 
 Model::Model(
@@ -95,22 +97,19 @@ Model::Model(
     glm::mat4 worldMatrix,
     std::vector<ModelVertex> vertices,
     std::vector<uint32_t> indices,
-    Material& material,
+    Material material,
     Texture* shadowMap,
     std::vector<glm::mat4> keyframes)
-    : mDevice(device),
-      mVertexBuffer(createVertexBuffer(mDevice, vertices)),
-      mIndexBuffer(createIndexBuffer(mDevice, indices)),
-      mVertices{vertices},
-      mIndexCount(indices.size()),
+    : mVertices{vertices},
       mIndices{indices},
+      mVertexBuffer(createVertexBuffer(device, mVertices)),
+      mIndexBuffer(createIndexBuffer(device, mIndices)),
       mUniform{},
-      mUniformBuffer(createUniformBuffer(mDevice)),
-      mDescriptorManager(descriptorManager),
-      mDescriptorSet(createDescriptorSet(mDescriptorManager, mUniformBuffer, shadowMap)),
+      mUniformBuffer(createUniformBuffer(device)),
+      mDescriptorSet(createDescriptorSet(descriptorManager, mUniformBuffer, shadowMap)),
       mMaterial{std::move(material)},
       mPipeline{
-          mDevice,
+          device,
           mMaterial,
           mDescriptorSet.layout(),
           ModelVertex::bindingDescription(),
@@ -143,6 +142,7 @@ void Model::updateUniformBuffer(
 Model createModelFromFile(
     Device& device,
     DescriptorManager& descriptorManager,
+    TextureManager& textureManager,
     SwapChain& swapChain,
     Texture& depthTexture,
     Texture* shadowMap,
@@ -185,7 +185,7 @@ Model createModelFromFile(
 
     auto materialFilename = readString(file);
     Material material = createMaterialFromFile(
-        device, descriptorManager, swapChain, &depthTexture, materialFilename, MaterialUsage::Model);
+        device, descriptorManager, textureManager, swapChain, &depthTexture, materialFilename, MaterialUsage::Model);
 
     uint32_t keyframeCount = readInt(file);
     std::cout << "keyframeCount " << keyframeCount << "\n";
@@ -199,5 +199,13 @@ Model createModelFromFile(
 
     file.close();
     return Model{
-        device, descriptorManager, swapChain.extent(), worldMatrix, vertices, indices, material, shadowMap, keyframes};
+        device,
+        descriptorManager,
+        swapChain.extent(),
+        worldMatrix,
+        vertices,
+        indices,
+        std::move(material),
+        shadowMap,
+        keyframes};
 }

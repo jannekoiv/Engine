@@ -5,13 +5,23 @@
 #include "../Include/DescriptorSet.h"
 #include <list>
 
-class Device;
-
 const int maxSets = 10;
+
+class Device;
 
 class DescriptorContainer {
 public:
+    DescriptorContainer(const DescriptorContainer&) = delete;
+
+    DescriptorContainer(DescriptorContainer&&) = delete;
+
     DescriptorContainer(vk::Device device, std::vector<vk::DescriptorSetLayoutBinding> bindings);
+
+    ~DescriptorContainer();
+
+    DescriptorContainer& operator=(const DescriptorContainer&) = delete;
+
+    DescriptorContainer& operator=(DescriptorContainer&&) = delete;
 
     std::vector<vk::DescriptorSetLayoutBinding> bindings()
     {
@@ -40,9 +50,15 @@ private:
 
 class DescriptorManager {
 public:
+    DescriptorManager(const DescriptorManager&) = delete;
+
+    DescriptorManager(DescriptorManager&&) = delete;
+
     DescriptorManager(Device& device);
 
-    ~DescriptorManager();
+    DescriptorManager& operator=(const DescriptorManager&) = delete;
+
+    DescriptorManager& operator=(DescriptorManager&&) = delete;
 
     DescriptorSet createDescriptorSet(std::vector<vk::DescriptorSetLayoutBinding> bindings);
 

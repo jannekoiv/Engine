@@ -7,8 +7,7 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
-vk::SurfaceFormatKHR chooseSwapSurfaceFormat(
-    const std::vector<vk::SurfaceFormatKHR>& availableFormats)
+vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats)
 {
     if (availableFormats.size() == 1 && availableFormats[0].format == vk::Format::eUndefined) {
         vk::SurfaceFormatKHR format;
@@ -25,8 +24,7 @@ vk::SurfaceFormatKHR chooseSwapSurfaceFormat(
     return availableFormats[0];
 }
 
-vk::PresentModeKHR chooseSwapPresentMode(
-    const std::vector<vk::PresentModeKHR> availablePresentModes)
+vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> availablePresentModes)
 {
     return vk::PresentModeKHR::eFifo;
     vk::PresentModeKHR preferredMode = vk::PresentModeKHR::eFifo;
@@ -65,9 +63,9 @@ static vk::ImageView createImageView(vk::Device device, vk::Image image, vk::For
     return imageView;
 }
 
-SwapChain::SwapChain(Device& device)
+SwapChain::SwapChain(Device& device) : mDevice{device}
 {
-    SwapChainSupportDetails swapChainSupportDetails(device.surface(), device.physicalDevice());
+    SwapChainSupportDetails swapChainSupportDetails(mDevice.surface(), mDevice.physicalDevice());
     auto surfaceFormat = chooseSwapSurfaceFormat(swapChainSupportDetails.formats);
     mFormat = surfaceFormat.format;
     mExtent = swapChainSupportDetails.capabilities.currentExtent;
@@ -75,27 +73,25 @@ SwapChain::SwapChain(Device& device)
     auto imageCount = chooseSwapImageCount(swapChainSupportDetails.capabilities);
 
     vk::SwapchainCreateInfoKHR createInfo;
-    createInfo.surface = device.surface();
+    createInfo.surface = mDevice.surface();
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageExtent = mExtent;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage =
-        vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
+    createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
     createInfo.preTransform = swapChainSupportDetails.capabilities.currentTransform;
     createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
     createInfo.presentMode = presentMode;
     createInfo.clipped = true;
     createInfo.oldSwapchain = nullptr;
 
-    int graphicsFamily = device.queueFamilyIndices().graphics;
-    int presentFamily = device.queueFamilyIndices().present;
+    int graphicsFamily = mDevice.queueFamilyIndices().graphics;
+    int presentFamily = mDevice.queueFamilyIndices().present;
     if (graphicsFamily != presentFamily) {
         createInfo.imageSharingMode = vk::SharingMode::eConcurrent;
         createInfo.queueFamilyIndexCount = 2;
-        uint32_t indices[] = {
-            static_cast<uint32_t>(graphicsFamily), static_cast<uint32_t>(presentFamily)};
+        uint32_t indices[] = {static_cast<uint32_t>(graphicsFamily), static_cast<uint32_t>(presentFamily)};
         createInfo.pQueueFamilyIndices = indices;
     } else {
         createInfo.imageSharingMode = vk::SharingMode::eExclusive;
@@ -103,18 +99,25 @@ SwapChain::SwapChain(Device& device)
         createInfo.pQueueFamilyIndices = nullptr;
     }
 
-    mSwapChain = static_cast<vk::Device>(device).createSwapchainKHR(createInfo, nullptr);
-    auto images = static_cast<vk::Device>(device).getSwapchainImagesKHR(mSwapChain);
+    mSwapChain = static_cast<vk::Device>(mDevice).createSwapchainKHR(createInfo, nullptr);
+    auto images = static_cast<vk::Device>(mDevice).getSwapchainImagesKHR(mSwapChain);
     std::cout << "swapchain images size " << images.size() << "\n";
 
     for (size_t i = 0; i < images.size(); i++) {
         mImages.push_back(images[i]);
-        mImageViews.push_back(createImageView(device, images[i], mFormat));
+        mImageViews.push_back(createImageView(mDevice, images[i], mFormat));
     }
 }
 
-vk::Extent2D chooseSwapExtent(
-    const vk::SurfaceCapabilitiesKHR& capabilities, const vk::Extent2D& extent)
+SwapChain::~SwapChain()
+{
+    for (auto imageView : mImageViews) {
+        static_cast<vk::Device>(mDevice).destroyImageView(imageView);
+    }
+    static_cast<vk::Device>(mDevice).destroySwapchainKHR(mSwapChain);
+}
+
+vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, const vk::Extent2D& extent)
 {
     if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
         std::cout << "FORCED\n";
@@ -122,11 +125,9 @@ vk::Extent2D chooseSwapExtent(
     } else {
         vk::Extent2D actualExtent = extent;
         actualExtent.width = std::max(
-            capabilities.minImageExtent.width,
-            std::min(capabilities.maxImageExtent.width, actualExtent.width));
+            capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
         actualExtent.height = std::max(
-            capabilities.minImageExtent.height,
-            std::min(capabilities.maxImageExtent.height, actualExtent.height));
+            capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
         return actualExtent;
     }
 }

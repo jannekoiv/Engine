@@ -9,7 +9,17 @@ class RenderPass;
 
 class SwapChain {
 public:
+    SwapChain(const SwapChain&) = delete;
+
+    SwapChain(SwapChain&&) = delete;
+
     SwapChain(Device& device);
+
+    ~SwapChain();
+
+    SwapChain& operator=(const SwapChain&) = delete;
+
+    SwapChain& operator=(SwapChain&&) = delete;
 
     operator vk::SwapchainKHR() const
     {
@@ -42,6 +52,7 @@ public:
     }
 
 private:
+    Device& mDevice;
     vk::SwapchainKHR mSwapChain;
     std::vector<vk::Image> mImages;
     std::vector<vk::ImageView> mImageViews;

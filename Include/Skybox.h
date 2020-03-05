@@ -46,7 +46,12 @@ public:
     Skybox& operator=(const Skybox&) = delete;
     Skybox& operator=(Skybox&&) = default;
 
-    Skybox(Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture& depthTexture);
+    Skybox(
+        Device& device,
+        DescriptorManager& descriptorManager,
+        TextureManager& textureManager,
+        SwapChain& swapChain,
+        Texture& depthTexture);
 
     Buffer& vertexBuffer()
     {
@@ -85,7 +90,6 @@ private:
     Buffer mVertexBuffer;
     Buffer mUniformBuffer;
     SkyboxUniform mUniform;
-    DescriptorManager& mDescriptorManager;
     DescriptorSet mDescriptorSet;
     Material mMaterial;
     Pipeline mPipeline;

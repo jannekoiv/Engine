@@ -8,10 +8,8 @@ class Texture;
 class Buffer {
 public:
     Buffer(const Buffer&) = delete;
-    Buffer(Buffer&& buffer);
 
-    Buffer& operator=(const Buffer&) = delete;
-    Buffer& operator=(Buffer&& buffer) = delete;
+    Buffer(Buffer&& buffer);
 
     Buffer(
         Device& device,
@@ -20,6 +18,10 @@ public:
         vk::MemoryPropertyFlags memoryProperties);
 
     ~Buffer();
+
+    Buffer& operator=(const Buffer&) = delete;
+
+    Buffer& operator=(Buffer&& buffer) = delete;
 
     operator vk::Buffer() const
     {

@@ -27,18 +27,24 @@ Engine::Engine(const int width, const int height, const bool enableValidationLay
           vk::MemoryPropertyFlagBits::eDeviceLocal,
           vk::SamplerAddressMode::eClampToEdge},
       mDescriptorManager{mDevice},
+      mTextureManager{mDevice},
       mRenderer{mDevice, mSwapChain, mDepthTexture},
-      mSkybox{mDevice, mDescriptorManager, mSwapChain, mDepthTexture},
+      mSkybox{mDevice, mDescriptorManager, mTextureManager, mSwapChain, mDepthTexture},
       mLight{mDevice, mDescriptorManager, mSwapChain},
       mQuad{mDevice, mDescriptorManager, mSwapChain, mLight.depthTexture()}
 {
+    std::cout << "Shadowmap in engine constructor body " << mLight.mDepthTexture.imageView() << "\n";
     std::cout << "Engine initialized\n";
+}
+
+Engine::~Engine()
+{
 }
 
 Model Engine::createModelFromFile(std::string filename)
 {
     return ::createModelFromFile(
-        mDevice, mDescriptorManager, mSwapChain, mDepthTexture, &mLight.depthTexture(), filename);
+        mDevice, mDescriptorManager, mTextureManager, mSwapChain, mDepthTexture, &mLight.depthTexture(), filename);
 }
 
 void Engine::drawFrame(std::vector<Model>& models)

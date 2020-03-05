@@ -34,6 +34,12 @@ Renderer::Renderer(Device& device, SwapChain& swapChain, Texture& depthTexture)
     std::cout << "Renderer initialized\n";
 }
 
+Renderer::~Renderer()
+{
+    static_cast<vk::Device>(mDevice).destroySemaphore(mRenderFinishedSemaphore);
+    static_cast<vk::Device>(mDevice).destroySemaphore(mImageAvailableSemaphore);
+}
+
 static void* alignedAlloc(size_t size, size_t alignment)
 {
     void* data = nullptr;
@@ -284,8 +290,8 @@ void Renderer::drawFrame(std::vector<Model>& models, Skybox& skybox, Quad& quad,
 
     drawModelsPass(commandBuffer, imageIndex, mSwapChain.extent(), models);
     drawSkyboxPass(commandBuffer, imageIndex, mSwapChain.extent(), skybox);
-
     //drawQuadPass(commandBuffer, imageIndex, mSwapChain.extent(), quad);
+
     light.depthTexture().transitionLayout(
         vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eDepthStencilAttachmentOptimal, commandBuffer);
 

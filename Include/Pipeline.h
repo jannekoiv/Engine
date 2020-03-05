@@ -10,6 +10,10 @@ class Material;
 
 class Pipeline {
 public:
+    Pipeline(const Pipeline&) = delete;
+
+    Pipeline(Pipeline&& rhs);
+
     Pipeline(
         Device& device,
         Material& material,
@@ -18,6 +22,12 @@ public:
         std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
         const vk::Extent2D& swapChainExtent,
         const MaterialUsage usage);
+
+    ~Pipeline();
+
+    Pipeline& operator=(const Pipeline&) = delete;
+
+    Pipeline& operator=(Pipeline&&) = delete;
 
     operator vk::Pipeline() const
     {
@@ -30,6 +40,7 @@ public:
     }
 
 private:
+    Device& mDevice;
     vk::PipelineLayout mPipelineLayout;
     vk::Pipeline mPipeline;
 };

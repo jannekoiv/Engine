@@ -13,14 +13,19 @@ struct DescriptorWrite {
 
 class DescriptorSet {
 public:
+    DescriptorSet(const DescriptorSet&) = delete;
+
+    DescriptorSet(DescriptorSet&& rhs);
+
     DescriptorSet(
         vk::Device device,
         std::vector<vk::DescriptorSetLayoutBinding> bindings,
         vk::DescriptorSet descriptorSet,
-        vk::DescriptorSetLayout layout)
-        : mDevice(device), mBindings{bindings}, mDescriptorSet{descriptorSet}, mLayout{layout}
-    {
-    }
+        vk::DescriptorSetLayout layout);
+
+    DescriptorSet& operator=(const DescriptorSet&) = delete;
+
+    DescriptorSet& operator=(DescriptorSet&&) = delete;
 
     operator vk::DescriptorSet()
     {

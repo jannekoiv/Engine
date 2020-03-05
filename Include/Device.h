@@ -21,9 +21,17 @@ struct SwapChainSupportDetails {
 
 class Device {
 public:
+    Device(const Device&) = delete;
+
+    Device(Device&&) = delete;
+
     Device(GLFWwindow* window, bool enableValidationLayers);
 
     ~Device();
+
+    Device& operator=(const Device&) = delete;
+
+    Device& operator=(Device&&) = delete;
 
     operator vk::Device() const
     {
@@ -67,9 +75,7 @@ public:
     void flushAndFreeCommandBuffer(vk::CommandBuffer commandBuffer);
 
     vk::Format findSupportedFormat(
-        const std::vector<vk::Format>& candidates,
-        vk::ImageTiling tiling,
-        vk::FormatFeatureFlags features);
+        const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
 
 private:
     vk::Instance mInstance;
@@ -84,6 +90,3 @@ private:
 };
 
 vk::Format findDepthAttachmentFormat(Device& device);
-
-
-

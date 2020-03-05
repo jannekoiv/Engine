@@ -1,6 +1,7 @@
 #pragma once
 #include "../Include/Base.h"
 #include "../Include/Buffer.h"
+#include "../Include/Camera.h"
 #include "../Include/DescriptorManager.h"
 #include "../Include/Device.h"
 #include "../Include/DirectionalLight.h"
@@ -10,11 +11,21 @@
 #include "../Include/Skybox.h"
 #include "../Include/SwapChain.h"
 #include "../Include/Texture.h"
-#include "../Include/Camera.h"
+#include "../Include/TextureManager.h"
 
 class Engine {
 public:
+    Engine(const Engine&) = delete;
+
+    Engine(Engine&&) = delete;
+
     Engine(const int width, const int height, const bool enableValidationLayers);
+
+    ~Engine();
+
+    Engine& operator=(const Engine&) = delete;
+
+    Engine& operator=(Engine&&) = delete;
 
     void setKeyCallback(GLFWkeyfun callback)
     {
@@ -34,14 +45,17 @@ public:
     {
         return mCamera;
     }
-    
 
-    //    ~Engine();
-    //
-    //    Device& device()
-    //    {
-    //        return mDevice;
-    //    }
+    Device& device()
+    {
+        return mDevice;
+    }
+
+    TextureManager& textureManager()
+    {
+        return mTextureManager;
+    }
+
     //
     //    SwapChain& swapChain()
     //    {
@@ -74,6 +88,7 @@ private:
     SwapChain mSwapChain;
     Texture mDepthTexture;
     DescriptorManager mDescriptorManager;
+    TextureManager mTextureManager;
     Renderer mRenderer;
 
 public:

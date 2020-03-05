@@ -8,6 +8,13 @@
 #include <sstream>
 #include <vulkan/vulkan.hpp>
 
+Pipeline::Pipeline(Pipeline&& rhs)
+    : mDevice{rhs.mDevice}, mPipelineLayout{rhs.mPipelineLayout}, mPipeline{rhs.mPipeline}
+{
+    rhs.mPipelineLayout = nullptr;
+    rhs.mPipeline = nullptr;
+}
+
 vk::PipelineLayout createPipelineLayout(
     Device& device, Material& material, vk::DescriptorSetLayout descriptorSetLayout, const MaterialUsage usage)
 {
@@ -174,8 +181,16 @@ Pipeline::Pipeline(
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
     const vk::Extent2D& swapChainExtent,
     const MaterialUsage usage)
-    : mPipelineLayout{createPipelineLayout(device, material, descriptorSetLayout, usage)},
+    : mDevice{device},
+      mPipelineLayout{createPipelineLayout(mDevice, material, descriptorSetLayout, usage)},
       mPipeline{createPipeline(
-          device, material, bindingDescription, attributeDescriptions, swapChainExtent, mPipelineLayout, usage)}
+          mDevice, material, bindingDescription, attributeDescriptions, swapChainExtent, mPipelineLayout, usage)}
 {
+    std::cout << "Pipeline constructed.\n";
+}
+
+Pipeline::~Pipeline()
+{
+    static_cast<vk::Device>(mDevice).destroyPipeline(mPipeline);
+    static_cast<vk::Device>(mDevice).destroyPipelineLayout(mPipelineLayout);
 }

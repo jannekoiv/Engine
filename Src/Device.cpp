@@ -84,22 +84,19 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     return false;
 }
 
-VkResult CreateDebugReportCallbackEXT(
-    vk::Instance instance,
-    const VkDebugReportCallbackCreateInfoEXT* createInfo,
-    const VkAllocationCallbacks* allocator,
-    VkDebugReportCallbackEXT* callback)
+VkResult createDebugReportCallbackEXT(
+    vk::Instance instance, const VkDebugReportCallbackCreateInfoEXT* createInfo, VkDebugReportCallbackEXT* callback)
 {
     auto func = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
 
     if (func != nullptr) {
-        return func(instance, createInfo, allocator, callback);
+        return func(instance, createInfo, nullptr, callback);
     } else {
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 }
 
-VkDebugReportCallbackEXT createDebugCallback(bool enableValidationLayers, vk::Instance& instance)
+VkDebugReportCallbackEXT createDebugCallback(bool enableValidationLayers, vk::Instance instance)
 {
     if (!enableValidationLayers) {
         return nullptr;
@@ -111,10 +108,25 @@ VkDebugReportCallbackEXT createDebugCallback(bool enableValidationLayers, vk::In
     createInfo.pfnCallback = debugCallback;
 
     VkDebugReportCallbackEXT callback = nullptr;
-    if (CreateDebugReportCallbackEXT(instance, &createInfo, nullptr, &callback) != VK_SUCCESS) {
+    if (createDebugReportCallbackEXT(instance, &createInfo, &callback) != VK_SUCCESS) {
         throw std::runtime_error("Failed to setup debug callback!");
     }
     return callback;
+}
+
+void destroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback)
+{
+    auto func = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+    if (func != nullptr) {
+        func(instance, callback, nullptr);
+    }
+}
+
+void destroyDebugCallback(vk::Instance instance, VkDebugReportCallbackEXT callback)
+{
+    if (callback) {
+        destroyDebugReportCallbackEXT(instance, callback);
+    }
 }
 
 vk::SurfaceKHR createSurface(vk::Instance& instance, GLFWwindow* window)
@@ -275,6 +287,11 @@ Device::Device(GLFWwindow* window, bool enableValidationLayers)
 
 Device::~Device()
 {
+    mDevice.destroyCommandPool(mCommandPool);
+    mDevice.destroy();
+    mInstance.destroySurfaceKHR(mSurface);
+    destroyDebugCallback(mInstance, mDebugCallback);
+    mInstance.destroy();
 }
 
 uint32_t Device::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) const

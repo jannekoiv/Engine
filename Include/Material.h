@@ -7,34 +7,30 @@
 #include "../Include/SwapChain.h"
 #include "../Include/Texture.h"
 
+class TextureManager;
+
 class Material {
 public:
+    Material(const Material&) = delete;
+
+    Material(Material&& rhs);
+
     Material(
         Device& device,
         DescriptorManager& descriptorManager,
         SwapChain& swapChain,
         Texture* depthTexture,
-        std::vector<Texture> textures,
+        //std::vector<Texture> textures,
+        Texture* texture,
         vk::ShaderModule vertexShader,
         vk::ShaderModule fragmentShader,
         MaterialUsage materialUsage);
 
-    //Material(const Material& rhs) = delete;
-
-    Material(Material&& rhs)
-        : mDevice{rhs.mDevice},
-          mTextures{std::move(rhs.mTextures)},
-          mDescriptorSet{rhs.mDescriptorSet},
-          mFramebufferSet{rhs.mFramebufferSet},
-          mVertexShader{rhs.mVertexShader},
-          mFragmentShader{rhs.mFragmentShader},
-          mMaterialUsage{rhs.mMaterialUsage}
-    {
-        //rhs.mVertexShader = nullptr;
-        //rhs.mFragmentShader = nullptr;
-    }
-
     ~Material();
+
+    Material& operator=(const Material&) = delete;
+
+    Material& operator=(Material&&) = delete;
 
     FramebufferSet& framebufferSet()
     {
@@ -51,9 +47,14 @@ public:
         return mFragmentShader;
     }
 
-    Texture& texture(size_t index)
+    //Texture& texture(size_t index)
+    //{
+    //    return mTextures[index];
+    //}
+
+    Texture* texture()
     {
-        return mTextures[index];
+        return mTexture;
     }
 
     DescriptorSet& descriptorSet()
@@ -66,19 +67,21 @@ public:
         return mMaterialUsage;
     }
 
-    size_t textureCount()
-    {
-        return mTextures.size();
-    }
+    //size_t textureCount()
+    //{
+    //    return mTextures.size();
+    //}
 
 private:
     Device& mDevice;
-    std::vector<Texture> mTextures;
+    //std::vector<Texture> mTextures;
+    Texture* mTexture;
+
+    DescriptorSet mDescriptorSet;
     FramebufferSet mFramebufferSet;
     vk::ShaderModule mVertexShader;
     vk::ShaderModule mFragmentShader;
     MaterialUsage mMaterialUsage;
-    DescriptorSet mDescriptorSet;
 };
 
 vk::ShaderModule createShaderFromFile(vk::Device device, std::string filename);
@@ -86,6 +89,7 @@ vk::ShaderModule createShaderFromFile(vk::Device device, std::string filename);
 Material createMaterialFromFile(
     Device& device,
     DescriptorManager& descriptorManager,
+    TextureManager& textureManager,
     SwapChain& swapChain,
     Texture* depthTexture,
     std::string filename,

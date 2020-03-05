@@ -15,8 +15,7 @@ vk::DescriptorSetLayout createDescriptorSetLayout(
     return layout;
 }
 
-vk::DescriptorPool createDescriptorPool(
-    vk::Device device, std::vector<vk::DescriptorSetLayoutBinding> bindings)
+vk::DescriptorPool createDescriptorPool(vk::Device device, std::vector<vk::DescriptorSetLayoutBinding> bindings)
 {
     std::vector<vk::DescriptorPoolSize> poolSizes(bindings.size());
 
@@ -35,20 +34,21 @@ vk::DescriptorPool createDescriptorPool(
     return pool;
 }
 
-//std::list<vk::DescriptorPool> createPoolList(
-//    vk::Device device, std::vector<vk::DescriptorSetLayoutBinding> bindings)
-//{
-//
-//}
-
-DescriptorContainer::DescriptorContainer(
-    vk::Device device, std::vector<vk::DescriptorSetLayoutBinding> bindings)
+DescriptorContainer::DescriptorContainer(vk::Device device, std::vector<vk::DescriptorSetLayoutBinding> bindings)
     : mDevice{device},
       mBindings{bindings},
       mSetsLeft(maxSets),
       mLayout{createDescriptorSetLayout(mDevice, bindings)},
       mPools{createDescriptorPool(mDevice, bindings)}
 {
+}
+
+DescriptorContainer::~DescriptorContainer()
+{
+    static_cast<vk::Device>(mDevice).destroyDescriptorSetLayout(mLayout);
+    for (auto pool : mPools) {
+        static_cast<vk::Device>(mDevice).destroyDescriptorPool(pool);
+    }
 }
 
 vk::DescriptorSet DescriptorContainer::createDescriptorSet()
@@ -73,17 +73,10 @@ DescriptorManager::DescriptorManager(Device& device) : mDevice(device)
 {
 }
 
-DescriptorManager::~DescriptorManager()
-{
-    //static_cast<vk::Device>(mDevice).destroyDescriptorPool(mDescriptorPool);
-}
-
 DescriptorContainer* findDescriptorContainer(
-    std::list<DescriptorContainer>& containers,
-    std::vector<vk::DescriptorSetLayoutBinding> bindings)
+    std::list<DescriptorContainer>& containers, std::vector<vk::DescriptorSetLayoutBinding> bindings)
 {
-    for (std::list<DescriptorContainer>::iterator it = containers.begin(); it != containers.end();
-         it++) {
+    for (std::list<DescriptorContainer>::iterator it = containers.begin(); it != containers.end(); it++) {
         if (it->bindings() == bindings) {
             return &(*it);
         }
@@ -91,8 +84,7 @@ DescriptorContainer* findDescriptorContainer(
     return nullptr;
 }
 
-DescriptorSet DescriptorManager::createDescriptorSet(
-    std::vector<vk::DescriptorSetLayoutBinding> bindings)
+DescriptorSet DescriptorManager::createDescriptorSet(std::vector<vk::DescriptorSetLayoutBinding> bindings)
 {
     auto container = findDescriptorContainer(mContainers, bindings);
 
@@ -101,6 +93,5 @@ DescriptorSet DescriptorManager::createDescriptorSet(
         container = &mContainers.emplace_back(mDevice, bindings);
     }
 
-    return DescriptorSet{
-        mDevice, container->bindings(), container->createDescriptorSet(), container->layout()};
+    return DescriptorSet{mDevice, container->bindings(), container->createDescriptorSet(), container->layout()};
 }

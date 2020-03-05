@@ -1,12 +1,28 @@
-#define STB_IMAGE_IMPLEMENTATION
 
 #include "../Include/Texture.h"
 #include "../Include/Base.h"
 #include "../Include/Buffer.h"
 #include "../Include/Device.h"
-#include "stb_image.h"
 #include <iostream>
 #include <vulkan/vulkan.hpp>
+
+Texture::Texture(Texture&& rhs)
+    : mDevice{rhs.mDevice},
+      mType{rhs.mType},
+      mLayerCount{rhs.mLayerCount},
+      mExtent{rhs.mExtent},
+      mFormat{rhs.mFormat},
+      mImage{rhs.mImage},
+      mMemory{rhs.mMemory},
+      mImageView{rhs.mImageView},
+      mSampler{rhs.mSampler}
+{
+    rhs.mImage = nullptr;
+    rhs.mMemory = nullptr;
+    rhs.mImageView = nullptr;
+    rhs.mSampler = nullptr;
+    std::cout << "Texture move constructed.\n";
+}
 
 vk::ImageType imageType(vk::ImageViewType type)
 {
@@ -158,15 +174,19 @@ Texture::Texture(
       mFormat{format},
       mImage{createImage(mDevice, mType, layerCount, mExtent, mFormat, tiling, usage)},
       mMemory{allocateAndBindMemory(mDevice, mImage, memoryProperties)},
-      mView{createImageView(mDevice, mType, mImage, mFormat)},
+      mImageView{createImageView(mDevice, mType, mImage, mFormat)},
       mSampler{createSampler(device, addressMode)}
 {
+    std::cout << "Texture constructed.\n";
 }
 
 Texture::~Texture()
 {
-    //    static_cast<vk::Device>(mDevice).freeMemory(mMemory);
-    //    static_cast<vk::Device>(mDevice).destroyImage(mImage);
+    static_cast<vk::Device>(mDevice).destroySampler(mSampler);
+    static_cast<vk::Device>(mDevice).destroyImageView(mImageView);
+    static_cast<vk::Device>(mDevice).freeMemory(mMemory);
+    static_cast<vk::Device>(mDevice).destroyImage(mImage);
+    std::cout << "Texture destructed.\n";
 }
 
 void Texture::transitionLayout(
@@ -350,105 +370,105 @@ void Texture::transitionLayout(
     }
 }
 
-Texture createTextureFromFile(Device& device, std::string filename, vk::SamplerAddressMode addressMode)
-{
-    const int bytesPerPixel = 4;
-    int width = 0;
-    int height = 0;
-    int channelCount = 0;
+//Texture createTextureFromFile(Device& device, std::string filename, vk::SamplerAddressMode addressMode)
+//{
+//    const int bytesPerPixel = 4;
+//    int width = 0;
+//    int height = 0;
+//    int channelCount = 0;
+//
+//    stbi_uc* pixels = stbi_load(filename.data(), &width, &height, &channelCount, STBI_rgb_alpha);
+//    if (!pixels) {
+//        throw std::runtime_error("Failed to load texture image!");
+//    }
+//
+//    vk::DeviceSize imageSize = width * height * bytesPerPixel;
+//
+//    Buffer stagingBuffer(
+//        device,
+//        imageSize,
+//        vk::BufferUsageFlagBits::eTransferSrc,
+//        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+//
+//    void* data = stagingBuffer.mapMemory();
+//    memcpy(data, pixels, imageSize);
+//    stagingBuffer.unmapMemory();
+//    stbi_image_free(pixels);
+//
+//    Texture texture{
+//        device,
+//        vk::ImageViewType::e2D,
+//        1,
+//        vk::Extent3D(width, height, 1),
+//        vk::Format::eR8G8B8A8Unorm,
+//        vk::ImageTiling::eOptimal,
+//        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled,
+//        vk::MemoryPropertyFlagBits::eDeviceLocal,
+//        addressMode};
+//
+//    texture.transitionLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+//    stagingBuffer.copyToTexture(texture, 0);
+//    texture.transitionLayout(vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+//
+//    return texture;
+//}
 
-    stbi_uc* pixels = stbi_load(filename.data(), &width, &height, &channelCount, STBI_rgb_alpha);
-    if (!pixels) {
-        throw std::runtime_error("Failed to load texture image!");
-    }
-
-    vk::DeviceSize imageSize = width * height * bytesPerPixel;
-
-    Buffer stagingBuffer(
-        device,
-        imageSize,
-        vk::BufferUsageFlagBits::eTransferSrc,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
-    void* data = stagingBuffer.mapMemory();
-    memcpy(data, pixels, imageSize);
-    stagingBuffer.unmapMemory();
-    stbi_image_free(pixels);
-
-    Texture texture{
-        device,
-        vk::ImageViewType::e2D,
-        1,
-        vk::Extent3D(width, height, 1),
-        vk::Format::eR8G8B8A8Unorm,
-        vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled,
-        vk::MemoryPropertyFlagBits::eDeviceLocal,
-        addressMode};
-
-    texture.transitionLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-    stagingBuffer.copyToTexture(texture, 0);
-    texture.transitionLayout(vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
-
-    return texture;
-}
-
-Texture createCubeTextureFromFile(Device& device, std::string filename)
-{
-    std::array<std::string, 6> filenames = {
-        "d:/skybox/right.jpg",
-        "d:/skybox/left.jpg",
-        "d:/skybox/top.jpg",
-        "d:/skybox/bottom.jpg",
-        "d:/skybox/front.jpg",
-        "d:/skybox/back.jpg"};
-
-    std::vector<Buffer> stagingBuffers{};
-
-    int width = 0;
-    int height = 0;
-
-    for (int face = 0; face < 6; face++) {
-        const int bytesPerPixel = 4;
-        int channelCount = 0;
-
-        stbi_uc* pixels = stbi_load(filenames[face].data(), &width, &height, &channelCount, STBI_rgb_alpha);
-        if (!pixels) {
-            throw std::runtime_error("Failed to load texture image!");
-        }
-
-        vk::DeviceSize imageSize = width * height * bytesPerPixel;
-
-        stagingBuffers.emplace_back(
-            device,
-            imageSize,
-            vk::BufferUsageFlagBits::eTransferSrc,
-            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
-        Buffer& stagingBuffer = stagingBuffers.back();
-
-        void* data = stagingBuffer.mapMemory();
-        memcpy(data, pixels, imageSize);
-        stagingBuffer.unmapMemory();
-        stbi_image_free(pixels);
-    }
-
-    Texture texture{
-        device,
-        vk::ImageViewType::eCube,
-        6,
-        vk::Extent3D(width, height, 1),
-        vk::Format::eR8G8B8A8Unorm,
-        vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled,
-        vk::MemoryPropertyFlagBits::eDeviceLocal,
-        vk::SamplerAddressMode::eClampToEdge};
-
-    texture.transitionLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-    for (int face = 0; face < 6; face++) {
-        stagingBuffers[face].copyToTexture(texture, face);
-    }
-    texture.transitionLayout(vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
-
-    return texture;
-}
+//Texture createCubeTextureFromFile(Device& device, std::string filename)
+//{
+//    std::array<std::string, 6> filenames = {
+//        "d:/skybox/right.jpg",
+//        "d:/skybox/left.jpg",
+//        "d:/skybox/top.jpg",
+//        "d:/skybox/bottom.jpg",
+//        "d:/skybox/front.jpg",
+//        "d:/skybox/back.jpg"};
+//
+//    std::vector<Buffer> stagingBuffers{};
+//
+//    int width = 0;
+//    int height = 0;
+//
+//    for (int face = 0; face < 6; face++) {
+//        const int bytesPerPixel = 4;
+//        int channelCount = 0;
+//
+//        stbi_uc* pixels = stbi_load(filenames[face].data(), &width, &height, &channelCount, STBI_rgb_alpha);
+//        if (!pixels) {
+//            throw std::runtime_error("Failed to load texture image!");
+//        }
+//
+//        vk::DeviceSize imageSize = width * height * bytesPerPixel;
+//
+//        stagingBuffers.emplace_back(
+//            device,
+//            imageSize,
+//            vk::BufferUsageFlagBits::eTransferSrc,
+//            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+//
+//        Buffer& stagingBuffer = stagingBuffers.back();
+//
+//        void* data = stagingBuffer.mapMemory();
+//        memcpy(data, pixels, imageSize);
+//        stagingBuffer.unmapMemory();
+//        stbi_image_free(pixels);
+//    }
+//
+//    Texture texture{
+//        device,
+//        vk::ImageViewType::eCube,
+//        6,
+//        vk::Extent3D(width, height, 1),
+//        vk::Format::eR8G8B8A8Unorm,
+//        vk::ImageTiling::eOptimal,
+//        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled,
+//        vk::MemoryPropertyFlagBits::eDeviceLocal,
+//        vk::SamplerAddressMode::eClampToEdge};
+//
+//    texture.transitionLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+//    for (int face = 0; face < 6; face++) {
+//        stagingBuffers[face].copyToTexture(texture, face);
+//    }
+//    texture.transitionLayout(vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+//
+//    return texture;
+//}

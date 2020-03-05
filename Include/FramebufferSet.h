@@ -10,10 +10,17 @@ enum class MaterialUsage { Clear, Model, Skybox, Quad, ShadowMap };
 
 class FramebufferSet {
 public:
-    FramebufferSet(
-        Device& device, SwapChain& swapChain, Texture* depthTexture, MaterialUsage materialUsage);
+    FramebufferSet(const FramebufferSet&) = delete;
+
+    FramebufferSet(FramebufferSet&& rhs);
+
+    FramebufferSet(Device& device, SwapChain& swapChain, Texture* depthTexture, MaterialUsage materialUsage);
 
     ~FramebufferSet();
+
+    FramebufferSet& operator=(const FramebufferSet&) = delete;
+
+    FramebufferSet& operator=(FramebufferSet&&) = delete;
 
     vk::RenderPass renderPass()
     {
@@ -31,6 +38,7 @@ public:
     }
 
 private:
+    Device& mDevice;
     vk::RenderPass mRenderPass;
     std::vector<vk::Framebuffer> mFramebuffers;
 };

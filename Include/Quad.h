@@ -89,5 +89,3 @@ private:
     Material mMaterial;
     Pipeline mPipeline;
 };
-
-;

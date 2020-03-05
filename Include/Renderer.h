@@ -18,7 +18,18 @@ class DirectionalLight;
 
 class Renderer {
 public:
+    Renderer(const Renderer&) = delete;
+
+    Renderer(Renderer&&) = delete;
+
     Renderer(Device& device, SwapChain& swapChain, Texture& depthTexture);
+
+    ~Renderer();
+
+    Renderer& operator=(const Renderer&) = delete;
+
+    Renderer& operator=(Renderer&&) = delete;
+
     void drawFrame(std::vector<Model>& models, Skybox& skybox, Quad& quad, DirectionalLight& light);
 
 private:

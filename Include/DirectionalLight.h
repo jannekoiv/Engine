@@ -18,6 +18,7 @@ class Texture;
 class DirectionalLight {
 public:
     DirectionalLight(Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain);
+
     void drawFrame(std::vector<Model>& models, vk::Extent2D swapChainExtent);
 
     Texture& depthTexture()

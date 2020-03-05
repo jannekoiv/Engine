@@ -7,6 +7,13 @@
 #include <iostream>
 #include <vulkan/vulkan.hpp>
 
+FramebufferSet::FramebufferSet(FramebufferSet&& rhs)
+    : mDevice{rhs.mDevice}, mRenderPass{rhs.mRenderPass}, mFramebuffers{rhs.mFramebuffers}
+{
+    rhs.mRenderPass = nullptr;
+    rhs.mFramebuffers.clear();
+}
+
 vk::RenderPass createRenderPass(Device& device, vk::Format swapChainFormat, MaterialUsage materialUsage)
 {
     std::vector<vk::AttachmentDescription> attachments{};
@@ -113,14 +120,10 @@ vk::RenderPass createRenderPass(Device& device, vk::Format swapChainFormat, Mate
 }
 
 std::vector<vk::Framebuffer> createFramebuffers(
-    Device& device,
-    SwapChain& swapChain,
-    Texture* depthTexture,
-    vk::RenderPass renderPass,
-    MaterialUsage materialUsage)
+    Device& device, SwapChain& swapChain, Texture* depthTexture, vk::RenderPass renderPass, MaterialUsage materialUsage)
 {
     if (materialUsage == MaterialUsage::ShadowMap) {
-        std::vector<vk::ImageView> attachments = {depthTexture->view()};
+        std::vector<vk::ImageView> attachments = {depthTexture->imageView()};
 
         vk::FramebufferCreateInfo framebufferInfo{};
         framebufferInfo.renderPass = renderPass;
@@ -138,7 +141,7 @@ std::vector<vk::Framebuffer> createFramebuffers(
         for (int i = 0; i < swapChain.imageCount(); i++) {
             std::vector<vk::ImageView> attachments = {swapChain.imageView(i)};
             if (depthTexture) {
-                attachments.push_back(depthTexture->view());
+                attachments.push_back(depthTexture->imageView());
             }
 
             vk::FramebufferCreateInfo framebufferInfo{};
@@ -157,13 +160,18 @@ std::vector<vk::Framebuffer> createFramebuffers(
     }
 }
 
-FramebufferSet::FramebufferSet(
-    Device& device, SwapChain& swapChain, Texture* depthTexture, MaterialUsage materialUsage)
-    : mRenderPass{createRenderPass(device, swapChain.format(), materialUsage)},
-      mFramebuffers{createFramebuffers(device, swapChain, depthTexture, mRenderPass, materialUsage)}
+FramebufferSet::FramebufferSet(Device& device, SwapChain& swapChain, Texture* depthTexture, MaterialUsage materialUsage)
+    : mDevice{device},
+      mRenderPass{createRenderPass(mDevice, swapChain.format(), materialUsage)},
+      mFramebuffers{createFramebuffers(mDevice, swapChain, depthTexture, mRenderPass, materialUsage)}
 {
 }
 
 FramebufferSet::~FramebufferSet()
 {
+    for (auto frameBuffer : mFramebuffers) {
+        static_cast<vk::Device>(mDevice).destroyFramebuffer(frameBuffer);
+    }
+
+    static_cast<vk::Device>(mDevice).destroyRenderPass(mRenderPass);
 }

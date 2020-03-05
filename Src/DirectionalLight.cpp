@@ -15,13 +15,13 @@ static Material createMaterial(
 {
     auto vertexShader = createShaderFromFile(device, "d:/Shaders/shadowvert.spv");
     depthTexture.transitionLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
-    std::vector<Texture> textures{};
+
     return Material{
         device,
         descriptorManager,
         swapChain,
         &depthTexture,
-        textures,
+        nullptr,
         vertexShader,
         nullptr,
         MaterialUsage::ShadowMap};
@@ -88,7 +88,7 @@ DirectionalLight::DirectionalLight(Device& device, DescriptorManager& descriptor
           swapChain.extent(),
           mMaterial.materialUsage()}
 {
-    std::cout << "Light constructed\n";
+    std::cout << "Directional light constructed.\n";
 }
 
 void DirectionalLight::drawFrame(std::vector<Model>& models, vk::Extent2D swapChainExtent)

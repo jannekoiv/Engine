@@ -57,10 +57,8 @@ struct ModelVertex {
 class Model {
 public:
     Model(const Model&) = delete;
-    Model(Model&&) = default;
 
-    Model& operator=(const Model&) = delete;
-    Model& operator=(Model&&) = default;
+    Model(Model&&) = default;
 
     Model(
         Device& device,
@@ -69,9 +67,13 @@ public:
         glm::mat4 worldMatrix,
         std::vector<ModelVertex> vertices,
         std::vector<uint32_t> indices,
-        Material& material,
+        Material material,
         Texture* shadowMap,
         std::vector<glm::mat4> keyframes);
+
+    Model& operator=(const Model&) = delete;
+
+    Model& operator=(Model&&) = delete;
 
     Buffer& vertexBuffer()
     {
@@ -100,7 +102,7 @@ public:
 
     int indexCount()
     {
-        return mIndexCount;
+        return mIndices.size();
     }
 
     void updateUniformBuffer(
@@ -135,15 +137,12 @@ public:
     }
 
 private:
-    Device& mDevice;
+    std::vector<ModelVertex> mVertices;
+    std::vector<uint32_t> mIndices;
     Buffer mVertexBuffer;
     Buffer mIndexBuffer;
-    std::vector<ModelVertex> mVertices;
-    int mIndexCount;
-    std::vector<uint32_t> mIndices;
     ModelUniform mUniform;
     Buffer mUniformBuffer;
-    DescriptorManager& mDescriptorManager;
     DescriptorSet mDescriptorSet;
     Material mMaterial;
     Pipeline mPipeline;
@@ -154,6 +153,7 @@ private:
 Model createModelFromFile(
     Device& device,
     DescriptorManager& descriptorManager,
+    TextureManager& textureManager,
     SwapChain& swapChain,
     Texture& depthTexture,
     Texture* shadowMap,

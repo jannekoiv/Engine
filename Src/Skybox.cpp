@@ -1,5 +1,6 @@
 #include "../Include/Skybox.h"
 #include "../Include/Device.h"
+#include "../Include/TextureManager.h"
 #include <fstream>
 #include <iostream>
 
@@ -65,10 +66,19 @@ static DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, v
 }
 
 static Material createMaterial(
-    Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture& depthTexture)
+    Device& device,
+    DescriptorManager& descriptorManager,
+    TextureManager& textureManager,
+    SwapChain& swapChain,
+    Texture& depthTexture)
 {
-    std::vector<Texture> textures{createCubeTextureFromFile(device, "d:/skybox/left.jpg")};
-
+    auto& texture = textureManager.createCubeTextureFromFile(
+        {"d:/skybox/left.jpg",
+         "d:/skybox/right.jpg",
+         "d:/skybox/top.jpg",
+         "d:/skybox/bottom.jpg",
+         "d:/skybox/front.jpg",
+         "d:/skybox/back.jpg"});
     auto vertexShader = createShaderFromFile(device, "d:/Shaders/skyboxvert.spv");
     auto fragmentShader = createShaderFromFile(device, "d:/Shaders/skyboxfrag.spv");
 
@@ -77,19 +87,23 @@ static Material createMaterial(
         descriptorManager,
         swapChain,
         &depthTexture,
-        textures,
+        &texture,
         vertexShader,
         fragmentShader,
         MaterialUsage::Skybox};
 }
 
-Skybox::Skybox(Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture& depthTexture)
+Skybox::Skybox(
+    Device& device,
+    DescriptorManager& descriptorManager,
+    TextureManager& textureManager,
+    SwapChain& swapChain,
+    Texture& depthTexture)
     : mDevice{device},
       mVertexBuffer{createVertexBuffer(mDevice)},
       mUniformBuffer{createUniformBuffer(mDevice)},
-      mDescriptorManager{descriptorManager},
-      mDescriptorSet{createDescriptorSet(mDescriptorManager, mUniformBuffer)},
-      mMaterial{createMaterial(device, descriptorManager, swapChain, depthTexture)},
+      mDescriptorSet{createDescriptorSet(descriptorManager, mUniformBuffer)},
+      mMaterial{createMaterial(device, descriptorManager, textureManager, swapChain, depthTexture)},
       mPipeline{
           mDevice,
           mMaterial,
@@ -100,7 +114,7 @@ Skybox::Skybox(Device& device, DescriptorManager& descriptorManager, SwapChain& 
           mMaterial.materialUsage()}
 {
     mUniform.world = glm::mat4{1.0f};
-    std::cout << "Skybox initialized\n";
+    std::cout << "Skybox constructed.\n";
 }
 
 void Skybox::updateUniformBuffer(const glm::mat4& viewMatrix, const glm::mat4& projMatrix)
@@ -111,6 +125,3 @@ void Skybox::updateUniformBuffer(const glm::mat4& viewMatrix, const glm::mat4& p
     memcpy(data, &mUniform, sizeof(SkyboxUniform));
     mUniformBuffer.unmapMemory();
 }
-
-
-

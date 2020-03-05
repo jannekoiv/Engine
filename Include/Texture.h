@@ -6,6 +6,10 @@ class Device;
 
 class Texture {
 public:
+    Texture(const Texture&) = delete;
+
+    Texture(Texture&& rhs);
+
     Texture(
         Device& device,
         vk::ImageViewType type,
@@ -17,8 +21,11 @@ public:
         vk::MemoryPropertyFlags memoryProperties,
         vk::SamplerAddressMode addressMode);
 
-
     ~Texture();
+
+    Texture& operator=(const Texture&) = delete;
+
+    Texture& operator=(Texture&&) = delete;
 
     Device& device() const
     {
@@ -55,9 +62,9 @@ public:
         return mImage;
     }
 
-    vk::ImageView view() const
+    vk::ImageView imageView() const
     {
-        return mView;
+        return mImageView;
     }
 
     vk::Sampler sampler() const
@@ -68,36 +75,6 @@ public:
     void transitionLayout(
         vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::CommandBuffer externalCommandBuffer = nullptr);
 
-    //Texture(const Texture& rhs)
-    //    : mDevice{rhs.mDevice},
-    //      mType{rhs.mType},
-    //      mLayerCount{rhs.mLayerCount},
-    //      mExtent{rhs.mExtent},
-    //      mFormat{rhs.mFormat},
-    //      mImage{rhs.mImage},
-    //      mMemory{rhs.mMemory},
-    //      mView{rhs.mView},
-    //      mSampler{rhs.mSampler}
-    //{
-    //}
-
-    //Texture(Texture&& rhs)
-    //    : mDevice{rhs.mDevice},
-    //      mType{rhs.mType},
-    //      mLayerCount{rhs.mLayerCount},
-    //      mExtent{rhs.mExtent},
-    //      mFormat{rhs.mFormat},
-    //      mImage{rhs.mImage},
-    //      mMemory{rhs.mMemory},
-    //      mView{rhs.mView},
-    //      mSampler{rhs.mSampler}
-    //{
-    //    rhs.mImage = nullptr;
-    //    rhs.mMemory = nullptr;
-    //    rhs.mView = nullptr;
-    //    rhs.mSampler = nullptr;
-    //}
-
 private:
     Device& mDevice;
     vk::ImageViewType mType;
@@ -106,9 +83,9 @@ private:
     vk::Format mFormat;
     vk::Image mImage;
     vk::DeviceMemory mMemory;
-    vk::ImageView mView;
+    vk::ImageView mImageView;
     vk::Sampler mSampler;
 };
 
-Texture createTextureFromFile(Device& device, std::string filename, vk::SamplerAddressMode addressMode);
-Texture createCubeTextureFromFile(Device& device, std::string filename);
+//Texture createTextureFromFile(Device& device, std::string filename, vk::SamplerAddressMode addressMode);
+//Texture createCubeTextureFromFile(Device& device, std::string filename);
