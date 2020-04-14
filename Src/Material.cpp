@@ -2,15 +2,16 @@
 
 #include "../Include/Material.h"
 #include "../Include/Base.h"
-#include "../Include/Device.h"
 #include "../Include/DescriptorManager.h"
-#include "../Include/TextureManager.h"
+#include "../Include/Device.h"
 #include "../Include/FramebufferSet.h"
+#include "../Include/TextureManager.h"
 #include <fstream>
+#include <json.hpp>
 
 Material::Material(Material&& rhs)
     : mDevice{rhs.mDevice},
-//      mTextures{std::move(rhs.mTextures)},
+      //      mTextures{std::move(rhs.mTextures)},
       mTexture{rhs.mTexture},
       mDescriptorSet{std::move(rhs.mDescriptorSet)},
       mFramebufferSet{std::move(rhs.mFramebufferSet)},
@@ -31,7 +32,7 @@ DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, Material
     DescriptorSet descriptorSet = descriptorManager.createDescriptorSet(bindings);
 
     //if (material.textureCount() > 0) {
-    if(material.texture()) {
+    if (material.texture()) {
         vk::DescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
         //imageInfo.imageview = material.texture(0).imageView();
@@ -90,30 +91,18 @@ Material createMaterialFromFile(
     std::string filename,
     MaterialUsage materialUsage)
 {
-    std::ifstream file(filename, std::ios::in | std::ios::binary);
+    using Json = nlohmann::json;
+    std::ifstream file{filename};
     if (!file.is_open()) {
         throw std::runtime_error("Failed to open material file!");
     }
+    Json json;
+    file >> json;
 
-    auto header = readString(file);
-    if (header != "paskaformaatti 1.0") {
-        std::cout << "HEADER\n";
-        throw std::runtime_error("Header file not matching!");
-    }
+    auto& texture = textureManager.createTextureFromFile(json["texture"], vk::SamplerAddressMode::eRepeat);
 
-    //std::vector<Texture> textures{};
-    //textures.push_back(createTextureFromFile(device, readString(file), vk::SamplerAddressMode::eRepeat));
-
-    std::cout << "Creating material texture..\n";
-
-    auto& texture = textureManager.createTextureFromFile(readString(file), vk::SamplerAddressMode::eRepeat);
-
-    std::cout << "Material texture created.\n";
-
-    auto vertexShader = createShaderFromFile(device, readString(file));
-    auto fragmentShader = createShaderFromFile(device, readString(file));
-
-    std::cout << "Creating material..\n";
+    auto vertexShader = createShaderFromFile(device, json["vertexShader"]);
+    auto fragmentShader = createShaderFromFile(device, json["fragmentShader"]);
 
     return Material{
         device,
