@@ -17,6 +17,10 @@ TextureManager::TextureManager(Device& device) : mDevice{device}
 
 Texture& TextureManager::createTextureFromFile(std::string filename, vk::SamplerAddressMode addressMode)
 {
+    if (filename.empty()) {
+        throw std::runtime_error("Failed to load texture image!");
+    }
+
     for (auto& texture : mTextures) {
         if (texture.filename == filename) {
             return texture.texture;
