@@ -73,8 +73,8 @@ static Material createMaterial(
     Texture& depthTexture)
 {
     auto& texture = textureManager.createCubeTextureFromFile(
-        {"d:/skybox/left.jpg",
-         "d:/skybox/right.jpg",
+        {"d:/skybox/right.jpg",
+         "d:/skybox/left.jpg",
          "d:/skybox/top.jpg",
          "d:/skybox/bottom.jpg",
          "d:/skybox/front.jpg",
