@@ -82,15 +82,7 @@ static Material createMaterial(
     auto vertexShader = createShaderFromFile(device, "d:/Shaders/skyboxvert.spv");
     auto fragmentShader = createShaderFromFile(device, "d:/Shaders/skyboxfrag.spv");
 
-    return Material{
-        device,
-        descriptorManager,
-        swapChain,
-        &depthTexture,
-        &texture,
-        vertexShader,
-        fragmentShader,
-        MaterialUsage::Skybox};
+    return Material{device, descriptorManager, swapChain, &depthTexture, &texture, vertexShader, fragmentShader};
 }
 
 Skybox::Skybox(
@@ -107,12 +99,14 @@ Skybox::Skybox(
       mPipeline{
           mDevice,
           mMaterial,
+          swapChain,
+          &depthTexture,
           mDescriptorSet.layout(),
           SkyboxVertex::bindingDescription(),
           SkyboxVertex::attributeDescriptions(),
-          swapChain.extent(),
-          mMaterial.materialUsage()}
-{
+          MaterialUsage::Skybox,
+          ""}
+    {
     mUniform.world = glm::mat4{1.0f};
     std::cout << "Skybox constructed.\n";
 }

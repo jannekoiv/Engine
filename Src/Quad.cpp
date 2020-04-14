@@ -68,15 +68,7 @@ static Material createMaterial(
 
     std::cout << "creating material\n";
 
-    return Material{
-        device,
-        descriptorManager,
-        swapChain,
-        nullptr,
-        &texture,
-        vertexShader,
-        fragmentShader,
-        MaterialUsage::Quad};
+    return Material{device, descriptorManager, swapChain, nullptr, &texture, vertexShader, fragmentShader};
 }
 
 Quad::Quad(Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture& texture)
@@ -89,11 +81,13 @@ Quad::Quad(Device& device, DescriptorManager& descriptorManager, SwapChain& swap
       mPipeline{
           mDevice,
           mMaterial,
+          swapChain,
+          nullptr,
           mDescriptorSet.layout(),
           QuadVertex::bindingDescription(),
           QuadVertex::attributeDescriptions(),
-          swapChain.extent(),
-          mMaterial.materialUsage()}
+          MaterialUsage::Quad,
+          ""}
 {
     std::cout << "Quad constructed\n";
 }

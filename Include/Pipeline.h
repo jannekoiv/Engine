@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "../Include/FramebufferSet.h"
 #include "../Include/Material.h"
 
 class Device;
@@ -17,11 +18,13 @@ public:
     Pipeline(
         Device& device,
         Material& material,
+        SwapChain& swapChain,
+        Texture* depthTexture,
         vk::DescriptorSetLayout descriptorSetLayout,
         vk::VertexInputBindingDescription bindingDescription,
         std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
-        const vk::Extent2D& swapChainExtent,
-        const MaterialUsage usage);
+        const MaterialUsage usage,
+        const nlohmann::json& json);
 
     ~Pipeline();
 
@@ -34,6 +37,11 @@ public:
         return mPipeline;
     }
 
+    FramebufferSet& framebufferSet()
+    {
+        return mFramebufferSet;
+    }
+
     vk::PipelineLayout layout() const
     {
         return mPipelineLayout;
@@ -41,6 +49,7 @@ public:
 
 private:
     Device& mDevice;
+    FramebufferSet mFramebufferSet;
     vk::PipelineLayout mPipelineLayout;
     vk::Pipeline mPipeline;
 };

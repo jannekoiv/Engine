@@ -93,7 +93,8 @@ static DescriptorSet createDescriptorSet(
 Model::Model(
     Device& device,
     DescriptorManager& descriptorManager,
-    vk::Extent2D swapChainExtent,
+    SwapChain& swapChain,
+    Texture& depthTexture,
     glm::mat4 worldMatrix,
     std::vector<ModelVertex> vertices,
     std::vector<uint32_t> indices,
@@ -111,11 +112,13 @@ Model::Model(
       mPipeline{
           device,
           mMaterial,
+          swapChain,
+          &depthTexture,
           mDescriptorSet.layout(),
           ModelVertex::bindingDescription(),
           ModelVertex::attributeDescriptions(),
-          swapChainExtent,
-          mMaterial.materialUsage()},
+          MaterialUsage::Model,
+          ""},
       mKeyframes{keyframes},
       mIKeyframe{-1}
 {
@@ -184,8 +187,8 @@ Model createModelFromFile(
     }
 
     auto materialFilename = readString(file);
-    Material material = createMaterialFromFile(
-        device, descriptorManager, textureManager, swapChain, &depthTexture, materialFilename, MaterialUsage::Model);
+    Material material =
+        createMaterialFromFile(device, descriptorManager, textureManager, swapChain, &depthTexture, materialFilename);
 
     uint32_t keyframeCount = readInt(file);
     std::cout << "keyframeCount " << keyframeCount << "\n";
@@ -201,7 +204,8 @@ Model createModelFromFile(
     return Model{
         device,
         descriptorManager,
-        swapChain.extent(),
+        swapChain,
+        depthTexture,
         worldMatrix,
         vertices,
         indices,

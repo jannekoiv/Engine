@@ -16,15 +16,7 @@ static Material createMaterial(
     auto vertexShader = createShaderFromFile(device, "d:/Shaders/shadowvert.spv");
     depthTexture.transitionLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
-    return Material{
-        device,
-        descriptorManager,
-        swapChain,
-        &depthTexture,
-        nullptr,
-        vertexShader,
-        nullptr,
-        MaterialUsage::ShadowMap};
+    return Material{device, descriptorManager, swapChain, &depthTexture, nullptr, vertexShader, nullptr};
 }
 
 DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager)
@@ -82,11 +74,13 @@ DirectionalLight::DirectionalLight(Device& device, DescriptorManager& descriptor
       mPipeline{
           mDevice,
           mMaterial,
+          swapChain,
+          &mDepthTexture,
           nullptr,
           ModelVertex::bindingDescription(),
           ModelVertex::attributeDescriptions(),
-          swapChain.extent(),
-          mMaterial.materialUsage()}
+          MaterialUsage::ShadowMap,
+          ""}
 {
     std::cout << "Directional light constructed.\n";
 }
@@ -98,8 +92,8 @@ void DirectionalLight::drawFrame(std::vector<Model>& models, vk::Extent2D swapCh
     mCommandBuffer.begin(beginInfo);
 
     vk::RenderPassBeginInfo renderPassInfo;
-    renderPassInfo.renderPass = mMaterial.framebufferSet().renderPass();
-    renderPassInfo.framebuffer = mMaterial.framebufferSet().frameBuffer(0);
+    renderPassInfo.renderPass = mPipeline.framebufferSet().renderPass();
+    renderPassInfo.framebuffer = mPipeline.framebufferSet().frameBuffer(0);
     renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
     renderPassInfo.renderArea.extent = swapChainExtent;
 

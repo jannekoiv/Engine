@@ -9,14 +9,21 @@
 #include <vulkan/vulkan.hpp>
 
 Pipeline::Pipeline(Pipeline&& rhs)
-    : mDevice{rhs.mDevice}, mPipelineLayout{rhs.mPipelineLayout}, mPipeline{rhs.mPipeline}
+    : mDevice{rhs.mDevice},
+      mFramebufferSet{std::move(rhs.mFramebufferSet)},
+      mPipelineLayout{rhs.mPipelineLayout},
+      mPipeline{rhs.mPipeline}
 {
     rhs.mPipelineLayout = nullptr;
     rhs.mPipeline = nullptr;
 }
 
 vk::PipelineLayout createPipelineLayout(
-    Device& device, Material& material, vk::DescriptorSetLayout descriptorSetLayout, const MaterialUsage usage)
+    Device& device,
+    Material& material,
+    vk::DescriptorSetLayout descriptorSetLayout,
+    const MaterialUsage usage,
+    const nlohmann::json& json)
 {
     std::vector<vk::DescriptorSetLayout> layouts{};
     if (descriptorSetLayout) {
@@ -45,11 +52,13 @@ vk::PipelineLayout createPipelineLayout(
 vk::Pipeline createPipeline(
     Device& device,
     Material& material,
+    FramebufferSet& framebufferSet,
     vk::VertexInputBindingDescription bindingDescription,
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
     vk::Extent2D swapChainExtent,
     vk::PipelineLayout pipelineLayout,
-    const MaterialUsage usage)
+    const MaterialUsage usage,
+    const nlohmann::json& json)
 {
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo;
     vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
@@ -164,7 +173,7 @@ vk::Pipeline createPipeline(
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = nullptr;
     pipelineInfo.layout = pipelineLayout;
-    pipelineInfo.renderPass = material.framebufferSet().renderPass();
+    pipelineInfo.renderPass = framebufferSet.renderPass();
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = nullptr;
     pipelineInfo.basePipelineIndex = -1;
@@ -176,15 +185,26 @@ vk::Pipeline createPipeline(
 Pipeline::Pipeline(
     Device& device,
     Material& material,
+    SwapChain& swapChain,
+    Texture* depthTexture,
     vk::DescriptorSetLayout descriptorSetLayout,
     vk::VertexInputBindingDescription bindingDescription,
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
-    const vk::Extent2D& swapChainExtent,
-    const MaterialUsage usage)
+    const MaterialUsage usage,
+    const nlohmann::json& json)
     : mDevice{device},
-      mPipelineLayout{createPipelineLayout(mDevice, material, descriptorSetLayout, usage)},
+      mFramebufferSet{mDevice, swapChain, depthTexture, usage},
+      mPipelineLayout{createPipelineLayout(mDevice, material, descriptorSetLayout, usage, json)},
       mPipeline{createPipeline(
-          mDevice, material, bindingDescription, attributeDescriptions, swapChainExtent, mPipelineLayout, usage)}
+          mDevice,
+          material,
+          mFramebufferSet,
+          bindingDescription,
+          attributeDescriptions,
+          swapChain.extent(),
+          mPipelineLayout,
+          usage,
+          json)}
 {
     std::cout << "Pipeline constructed.\n";
 }

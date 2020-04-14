@@ -4,7 +4,6 @@
 #include "../Include/Base.h"
 #include "../Include/DescriptorManager.h"
 #include "../Include/Device.h"
-#include "../Include/FramebufferSet.h"
 #include "../Include/TextureManager.h"
 #include <fstream>
 #include <json.hpp>
@@ -14,10 +13,8 @@ Material::Material(Material&& rhs)
       //      mTextures{std::move(rhs.mTextures)},
       mTexture{rhs.mTexture},
       mDescriptorSet{std::move(rhs.mDescriptorSet)},
-      mFramebufferSet{std::move(rhs.mFramebufferSet)},
       mVertexShader{rhs.mVertexShader},
-      mFragmentShader{rhs.mFragmentShader},
-      mMaterialUsage{rhs.mMaterialUsage}
+      mFragmentShader{rhs.mFragmentShader}
 {
     rhs.mVertexShader = nullptr;
     rhs.mFragmentShader = nullptr;
@@ -62,15 +59,12 @@ Material::Material(
     //std::vector<Texture> textures,
     Texture* texture,
     vk::ShaderModule vertexShader,
-    vk::ShaderModule fragmentShader,
-    MaterialUsage materialUsage)
+    vk::ShaderModule fragmentShader)
     : mDevice{device},
       //mTextures{std::move(textures)},
       mTexture{texture},
-      mFramebufferSet{mDevice, swapChain, depthTexture, materialUsage},
       mVertexShader{vertexShader},
       mFragmentShader{fragmentShader},
-      mMaterialUsage{materialUsage},
       mDescriptorSet{createDescriptorSet(descriptorManager, *this)}
 {
     std::cout << "Material constructed.\n";
@@ -88,8 +82,7 @@ Material createMaterialFromFile(
     TextureManager& textureManager,
     SwapChain& swapChain,
     Texture* depthTexture,
-    std::string filename,
-    MaterialUsage materialUsage)
+    std::string filename)
 {
     using Json = nlohmann::json;
     std::ifstream file{filename};
@@ -112,6 +105,5 @@ Material createMaterialFromFile(
         //std::move(textures),
         &texture,
         vertexShader,
-        fragmentShader,
-        materialUsage};
+        fragmentShader};
 }

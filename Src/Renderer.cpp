@@ -196,8 +196,8 @@ static void drawModelsPass(
 {
     for (Model& model : models) {
         vk::RenderPassBeginInfo renderPassInfo;
-        renderPassInfo.renderPass = models.front().material().framebufferSet().renderPass();
-        renderPassInfo.framebuffer = models.front().material().framebufferSet().frameBuffer(framebufferIndex);
+        renderPassInfo.renderPass = models.front().pipeline().framebufferSet().renderPass();
+        renderPassInfo.framebuffer = models.front().pipeline().framebufferSet().frameBuffer(framebufferIndex);
         renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
         renderPassInfo.renderArea.extent = swapChainExtent;
 
@@ -226,8 +226,8 @@ static void drawSkyboxPass(
     vk::CommandBuffer commandBuffer, int framebufferIndex, vk::Extent2D swapChainExtent, Skybox& skybox)
 {
     vk::RenderPassBeginInfo renderPassInfo;
-    renderPassInfo.renderPass = skybox.material().framebufferSet().renderPass();
-    renderPassInfo.framebuffer = skybox.material().framebufferSet().frameBuffer(framebufferIndex);
+    renderPassInfo.renderPass = skybox.pipeline().framebufferSet().renderPass();
+    renderPassInfo.framebuffer = skybox.pipeline().framebufferSet().frameBuffer(framebufferIndex);
     renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
     renderPassInfo.renderArea.extent = swapChainExtent;
 
@@ -250,8 +250,8 @@ static void drawQuadPass(
     vk::CommandBuffer commandBuffer, int framebufferIndex, vk::Extent2D swapChainExtent, Quad& quad)
 {
     vk::RenderPassBeginInfo renderPassInfo;
-    renderPassInfo.renderPass = quad.material().framebufferSet().renderPass();
-    renderPassInfo.framebuffer = quad.material().framebufferSet().frameBuffer(framebufferIndex);
+    renderPassInfo.renderPass = quad.pipeline().framebufferSet().renderPass();
+    renderPassInfo.framebuffer = quad.pipeline().framebufferSet().frameBuffer(framebufferIndex);
     renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
     renderPassInfo.renderArea.extent = swapChainExtent;
 

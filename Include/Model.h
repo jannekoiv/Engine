@@ -63,7 +63,8 @@ public:
     Model(
         Device& device,
         DescriptorManager& descriptorManager,
-        vk::Extent2D swapChainExtent,
+        SwapChain& swapChain,
+        Texture& depthTexture,
         glm::mat4 worldMatrix,
         std::vector<ModelVertex> vertices,
         std::vector<uint32_t> indices,
