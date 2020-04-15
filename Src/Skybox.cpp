@@ -104,9 +104,10 @@ Skybox::Skybox(
           mDescriptorSet.layout(),
           SkyboxVertex::bindingDescription(),
           SkyboxVertex::attributeDescriptions(),
-          MaterialUsage::Skybox,
-          ""}
-    {
+          {{"vertexShader", "d:/Shaders/skyboxvert.spv"},
+           {"fragmentShader", "d:/Shaders/skyboxfrag.spv"},
+           {"usage", "Skybox"}}}
+{
     mUniform.world = glm::mat4{1.0f};
     std::cout << "Skybox constructed.\n";
 }

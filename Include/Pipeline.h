@@ -23,7 +23,6 @@ public:
         vk::DescriptorSetLayout descriptorSetLayout,
         vk::VertexInputBindingDescription bindingDescription,
         std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
-        const MaterialUsage usage,
         const nlohmann::json& json);
 
     ~Pipeline();

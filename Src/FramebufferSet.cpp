@@ -14,7 +14,8 @@ FramebufferSet::FramebufferSet(FramebufferSet&& rhs)
     rhs.mFramebuffers.clear();
 }
 
-vk::RenderPass createRenderPass(Device& device, vk::Format swapChainFormat, MaterialUsage materialUsage)
+vk::RenderPass createRenderPass(
+    Device& device, vk::Format swapChainFormat, const nlohmann::json& json)
 {
     std::vector<vk::AttachmentDescription> attachments{};
 
@@ -23,12 +24,20 @@ vk::RenderPass createRenderPass(Device& device, vk::Format swapChainFormat, Mate
 
     std::vector<vk::AttachmentReference> colorAttachmentRefs{{{0, vk::ImageLayout::eColorAttachmentOptimal}}};
 
-    if (materialUsage != MaterialUsage::ShadowMap) {
+    std::cout << "json size " << json.size() << "\n";
+    if (json.contains("usage")) {
+        std::cout << "usage found\n";
+    } else {
+        std::cout << "usage not found\n";
+        abort();
+    }
+
+    if (json["usage"] != "ShadowMap") {
         vk::AttachmentDescription colorAttachment{};
         colorAttachment.format = swapChainFormat;
         colorAttachment.samples = vk::SampleCountFlagBits::e1;
 
-        if (materialUsage == MaterialUsage::Clear) {
+        if (json["usage"] == "Clear") {
             colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
         } else {
             colorAttachment.loadOp = vk::AttachmentLoadOp::eLoad;
@@ -38,7 +47,7 @@ vk::RenderPass createRenderPass(Device& device, vk::Format swapChainFormat, Mate
         colorAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
         colorAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
 
-        if (materialUsage == MaterialUsage::Clear) {
+        if (json["usage"] == "Clear") {
             colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
         } else {
             colorAttachment.initialLayout = vk::ImageLayout::ePresentSrcKHR;
@@ -52,10 +61,10 @@ vk::RenderPass createRenderPass(Device& device, vk::Format swapChainFormat, Mate
         attachments.push_back(colorAttachment);
     }
 
-    if (materialUsage != MaterialUsage::Quad) {
+    if (json["usage"] != "Quad") {
         vk::AttachmentReference depthAttachmentRef{};
 
-        if (materialUsage != MaterialUsage::ShadowMap) {
+        if (json["usage"] != "ShadowMap") {
             depthAttachmentRef.attachment = 1;
             depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
         } else {
@@ -69,13 +78,13 @@ vk::RenderPass createRenderPass(Device& device, vk::Format swapChainFormat, Mate
         depthAttachment.format = findDepthAttachmentFormat(device);
         depthAttachment.samples = vk::SampleCountFlagBits::e1;
 
-        if (materialUsage == MaterialUsage::Clear) {
+        if (json["usage"] == "Clear") {
             depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
         } else {
             depthAttachment.loadOp = vk::AttachmentLoadOp::eLoad;
         }
 
-        if (materialUsage == MaterialUsage::ShadowMap) {
+        if (json["usage"] == "ShadowMap") {
             depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
         }
 
@@ -83,14 +92,14 @@ vk::RenderPass createRenderPass(Device& device, vk::Format swapChainFormat, Mate
         depthAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
         depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
 
-        if (materialUsage == MaterialUsage::Clear) {
+        if (json["usage"] == "Clear") {
             depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
         } else {
             depthAttachment.initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
         }
         depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
-        if (materialUsage == MaterialUsage::ShadowMap) {
+        if (json["usage"] == "ShadowMap") {
             depthAttachment.initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
             depthAttachment.finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
         }
@@ -120,9 +129,13 @@ vk::RenderPass createRenderPass(Device& device, vk::Format swapChainFormat, Mate
 }
 
 std::vector<vk::Framebuffer> createFramebuffers(
-    Device& device, SwapChain& swapChain, Texture* depthTexture, vk::RenderPass renderPass, MaterialUsage materialUsage)
+    Device& device,
+    SwapChain& swapChain,
+    Texture* depthTexture,
+    vk::RenderPass renderPass,
+    const nlohmann::json& json)
 {
-    if (materialUsage == MaterialUsage::ShadowMap) {
+    if (json["usage"] == "ShadowMap") {
         std::vector<vk::ImageView> attachments = {depthTexture->imageView()};
 
         vk::FramebufferCreateInfo framebufferInfo{};
@@ -160,10 +173,14 @@ std::vector<vk::Framebuffer> createFramebuffers(
     }
 }
 
-FramebufferSet::FramebufferSet(Device& device, SwapChain& swapChain, Texture* depthTexture, MaterialUsage materialUsage)
+FramebufferSet::FramebufferSet(
+    Device& device,
+    SwapChain& swapChain,
+    Texture* depthTexture,
+    const nlohmann::json& json)
     : mDevice{device},
-      mRenderPass{createRenderPass(mDevice, swapChain.format(), materialUsage)},
-      mFramebuffers{createFramebuffers(mDevice, swapChain, depthTexture, mRenderPass, materialUsage)}
+      mRenderPass{createRenderPass(mDevice, swapChain.format(), json)},
+      mFramebuffers{createFramebuffers(mDevice, swapChain, depthTexture, mRenderPass, json)}
 {
 }
 

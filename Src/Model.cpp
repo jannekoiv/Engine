@@ -3,15 +3,6 @@
 #include <fstream>
 #include <iostream>
 
-static Buffer createUniformBuffer(Device& device)
-{
-    return Buffer(
-        device,
-        sizeof(ModelUniform),
-        vk::BufferUsageFlagBits::eUniformBuffer,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-}
-
 static Buffer createVertexBuffer(Device& device, std::vector<ModelVertex>& vertices)
 {
     vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
@@ -93,12 +84,13 @@ static DescriptorSet createDescriptorSet(
 Model::Model(
     Device& device,
     DescriptorManager& descriptorManager,
+    TextureManager& textureManager,
     SwapChain& swapChain,
     Texture& depthTexture,
     glm::mat4 worldMatrix,
     std::vector<ModelVertex> vertices,
     std::vector<uint32_t> indices,
-    Material material,
+    const nlohmann::json& json,
     Texture* shadowMap,
     std::vector<glm::mat4> keyframes)
     : mVertices{vertices},
@@ -106,9 +98,13 @@ Model::Model(
       mVertexBuffer(createVertexBuffer(device, mVertices)),
       mIndexBuffer(createIndexBuffer(device, mIndices)),
       mUniform{},
-      mUniformBuffer(createUniformBuffer(device)),
+      mUniformBuffer{
+          device,
+          sizeof(ModelUniform),
+          vk::BufferUsageFlagBits::eUniformBuffer,
+          vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent},
       mDescriptorSet(createDescriptorSet(descriptorManager, mUniformBuffer, shadowMap)),
-      mMaterial{std::move(material)},
+      mMaterial{device, descriptorManager, textureManager, swapChain, &depthTexture, json},
       mPipeline{
           device,
           mMaterial,
@@ -117,8 +113,7 @@ Model::Model(
           mDescriptorSet.layout(),
           ModelVertex::bindingDescription(),
           ModelVertex::attributeDescriptions(),
-          MaterialUsage::Model,
-          ""},
+          json},
       mKeyframes{keyframes},
       mIKeyframe{-1}
 {
@@ -187,8 +182,16 @@ Model createModelFromFile(
     }
 
     auto materialFilename = readString(file);
-    Material material =
-        createMaterialFromFile(device, descriptorManager, textureManager, swapChain, &depthTexture, materialFilename);
+    using Json = nlohmann::json;
+    std::ifstream materialFile{materialFilename};
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open material file!");
+    }
+    Json json;
+    materialFile >> json;
+
+    //Material material =
+    //    createMaterialFromFile(device, descriptorManager, textureManager, swapChain, &depthTexture, materialFilename);
 
     uint32_t keyframeCount = readInt(file);
     std::cout << "keyframeCount " << keyframeCount << "\n";
@@ -204,12 +207,14 @@ Model createModelFromFile(
     return Model{
         device,
         descriptorManager,
+        textureManager,
         swapChain,
         depthTexture,
         worldMatrix,
         vertices,
         indices,
-        std::move(material),
+        //Material{device, descriptorManager, textureManager, swapChain, &depthTexture, json},
+        json,
         shadowMap,
         keyframes};
 }

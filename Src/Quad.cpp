@@ -86,8 +86,9 @@ Quad::Quad(Device& device, DescriptorManager& descriptorManager, SwapChain& swap
           mDescriptorSet.layout(),
           QuadVertex::bindingDescription(),
           QuadVertex::attributeDescriptions(),
-          MaterialUsage::Quad,
-          ""}
+          {{"vertexShader", "d:/Shaders/quadvert.spv"},
+           {"fragmentShader", "d:/Shaders/quadfrag.spv"},
+           {"usage", "Quad"}}}
 {
     std::cout << "Quad constructed\n";
 }

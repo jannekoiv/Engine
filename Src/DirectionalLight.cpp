@@ -79,8 +79,7 @@ DirectionalLight::DirectionalLight(Device& device, DescriptorManager& descriptor
           nullptr,
           ModelVertex::bindingDescription(),
           ModelVertex::attributeDescriptions(),
-          MaterialUsage::ShadowMap,
-          ""}
+          {{"vertexShader", "d:/Shaders/shadowvert.spv"}, {"usage", "ShadowMap"}}}
 {
     std::cout << "Directional light constructed.\n";
 }

@@ -22,7 +22,6 @@ vk::PipelineLayout createPipelineLayout(
     Device& device,
     Material& material,
     vk::DescriptorSetLayout descriptorSetLayout,
-    const MaterialUsage usage,
     const nlohmann::json& json)
 {
     std::vector<vk::DescriptorSetLayout> layouts{};
@@ -30,7 +29,7 @@ vk::PipelineLayout createPipelineLayout(
         layouts.push_back(descriptorSetLayout);
     }
 
-    if (usage != MaterialUsage::ShadowMap) {
+    if(json["usage"] != "ShadowMap") {
         layouts.push_back(material.descriptorSet().layout());
     }
 
@@ -49,6 +48,25 @@ vk::PipelineLayout createPipelineLayout(
     return pipelineLayout;
 }
 
+vk::ShaderModule createShaderFromFile(vk::Device device, std::string filename)
+{
+    auto code = readFile(filename);
+    vk::ShaderModuleCreateInfo createInfo{};
+    createInfo.codeSize = code.size();
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+    vk::ShaderModule shaderModule = device.createShaderModule(createInfo, nullptr);
+    return shaderModule;
+}
+
+vk::ShaderModule createShaderFromFileByKey(vk::Device device, const nlohmann::json& json, std::string keyname)
+{
+    if (json.contains(keyname)) {
+        return createShaderFromFile(device, json[keyname]);
+    } else {
+        return nullptr;
+    }
+}
+
 vk::Pipeline createPipeline(
     Device& device,
     Material& material,
@@ -57,19 +75,21 @@ vk::Pipeline createPipeline(
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
     vk::Extent2D swapChainExtent,
     vk::PipelineLayout pipelineLayout,
-    const MaterialUsage usage,
     const nlohmann::json& json)
 {
+    auto vertexShader = createShaderFromFileByKey(device, json, "vertexShader");
+    auto fragmentShader = createShaderFromFileByKey(device, json, "fragmentShader");
+
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo;
     vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
-    vertShaderStageInfo.module = material.vertexShader();
+    vertShaderStageInfo.module = vertexShader;
     vertShaderStageInfo.pName = "main";
 
     std::vector<vk::PipelineShaderStageCreateInfo> shaderStages = {
         vertShaderStageInfo,
     };
 
-    if (usage != MaterialUsage::ShadowMap) {
+    if(json["usage"] != "ShadowMap") {
         vk::PipelineShaderStageCreateInfo fragShaderStageInfo;
         fragShaderStageInfo.stage = vk::ShaderStageFlagBits::eFragment;
         fragShaderStageInfo.module = material.fragmentShader();
@@ -139,11 +159,11 @@ vk::Pipeline createPipeline(
     depthStencil.depthTestEnable = true;
     depthStencil.depthWriteEnable = true;
 
-    if (usage == MaterialUsage::Skybox) {
+    if(json["usage"] == "Skybox") {
         depthStencil.depthCompareOp = vk::CompareOp::eLessOrEqual;
-    } else if (usage == MaterialUsage::Model) {
+    } else if (json["usage"] == "Model") {
         depthStencil.depthCompareOp = vk::CompareOp::eLess;
-    } else if (usage == MaterialUsage::Quad) {
+    } else if (json["usage"] == "Quad") {
         depthStencil.depthTestEnable = false;
         depthStencil.depthWriteEnable = false;
     }
@@ -155,7 +175,7 @@ vk::Pipeline createPipeline(
     depthStencil.front = vk::StencilOpState{};
     depthStencil.back = vk::StencilOpState{};
 
-    if (usage == MaterialUsage::ShadowMap) {
+    if (json["usage"] == "ShadowMap") {
         depthStencil.depthCompareOp = vk::CompareOp::eLess;
         depthStencil.depthTestEnable = true;
         depthStencil.depthWriteEnable = true;
@@ -179,6 +199,8 @@ vk::Pipeline createPipeline(
     pipelineInfo.basePipelineIndex = -1;
 
     vk::Pipeline pipeline = static_cast<vk::Device>(device).createGraphicsPipeline(nullptr, pipelineInfo, nullptr);
+    static_cast<vk::Device>(device).destroyShaderModule(vertexShader);
+    static_cast<vk::Device>(device).destroyShaderModule(fragmentShader);
     return pipeline;
 }
 
@@ -190,11 +212,10 @@ Pipeline::Pipeline(
     vk::DescriptorSetLayout descriptorSetLayout,
     vk::VertexInputBindingDescription bindingDescription,
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
-    const MaterialUsage usage,
     const nlohmann::json& json)
     : mDevice{device},
-      mFramebufferSet{mDevice, swapChain, depthTexture, usage},
-      mPipelineLayout{createPipelineLayout(mDevice, material, descriptorSetLayout, usage, json)},
+      mFramebufferSet{mDevice, swapChain, depthTexture, json},
+      mPipelineLayout{createPipelineLayout(mDevice, material, descriptorSetLayout, json)},
       mPipeline{createPipeline(
           mDevice,
           material,
@@ -203,7 +224,6 @@ Pipeline::Pipeline(
           attributeDescriptions,
           swapChain.extent(),
           mPipelineLayout,
-          usage,
           json)}
 {
     std::cout << "Pipeline constructed.\n";

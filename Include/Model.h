@@ -63,12 +63,13 @@ public:
     Model(
         Device& device,
         DescriptorManager& descriptorManager,
+        TextureManager& textureManager,
         SwapChain& swapChain,
         Texture& depthTexture,
         glm::mat4 worldMatrix,
         std::vector<ModelVertex> vertices,
         std::vector<uint32_t> indices,
-        Material material,
+        const nlohmann::json& json,
         Texture* shadowMap,
         std::vector<glm::mat4> keyframes);
 

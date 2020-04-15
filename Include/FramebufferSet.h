@@ -6,15 +6,17 @@ class Device;
 class SwapChain;
 class Texture;
 
-enum class MaterialUsage { Clear, Model, Skybox, Quad, ShadowMap };
-
 class FramebufferSet {
 public:
     FramebufferSet(const FramebufferSet&) = delete;
 
     FramebufferSet(FramebufferSet&& rhs);
 
-    FramebufferSet(Device& device, SwapChain& swapChain, Texture* depthTexture, MaterialUsage materialUsage);
+    FramebufferSet(
+        Device& device,
+        SwapChain& swapChain,
+        Texture* depthTexture,
+        const nlohmann::json& json);
 
     ~FramebufferSet();
 

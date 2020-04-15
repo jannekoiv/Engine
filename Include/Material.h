@@ -24,6 +24,14 @@ public:
         vk::ShaderModule vertexShader,
         vk::ShaderModule fragmentShader);
 
+    Material(
+        Device& device,
+        DescriptorManager& descriptorManager,
+        TextureManager& textureManager,
+        SwapChain& swapChain,
+        Texture* depthTexture,
+        const nlohmann::json& json);
+
     ~Material();
 
     Material& operator=(const Material&) = delete;

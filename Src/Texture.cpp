@@ -21,7 +21,6 @@ Texture::Texture(Texture&& rhs)
     rhs.mMemory = nullptr;
     rhs.mImageView = nullptr;
     rhs.mSampler = nullptr;
-    std::cout << "Texture move constructed.\n";
 }
 
 vk::ImageType imageType(vk::ImageViewType type)
@@ -177,7 +176,6 @@ Texture::Texture(
       mImageView{createImageView(mDevice, mType, mImage, mFormat)},
       mSampler{createSampler(device, addressMode)}
 {
-    std::cout << "Texture constructed.\n";
 }
 
 Texture::~Texture()
@@ -186,7 +184,6 @@ Texture::~Texture()
     static_cast<vk::Device>(mDevice).destroyImageView(mImageView);
     static_cast<vk::Device>(mDevice).freeMemory(mMemory);
     static_cast<vk::Device>(mDevice).destroyImage(mImage);
-    std::cout << "Texture destructed.\n";
 }
 
 void Texture::transitionLayout(

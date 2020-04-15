@@ -26,7 +26,7 @@ Renderer::Renderer(Device& device, SwapChain& swapChain, Texture& depthTexture)
     : mDevice{device},
       mSwapChain{swapChain},
       mDepthTexture{depthTexture},
-      mClearFramebufferSet{mDevice, mSwapChain, &mDepthTexture, MaterialUsage::Clear},
+      mClearFramebufferSet{mDevice, mSwapChain, &mDepthTexture, {{"usage", "Clear"}}},
       mCommandBuffers{createCommandBuffers(device, swapChain)},
       mImageAvailableSemaphore{static_cast<vk::Device>(mDevice).createSemaphore({})},
       mRenderFinishedSemaphore{static_cast<vk::Device>(mDevice).createSemaphore({})}

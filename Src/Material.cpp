@@ -41,7 +41,7 @@ DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, Material
     return descriptorSet;
 }
 
-vk::ShaderModule createShaderFromFile(vk::Device device, std::string filename)
+static vk::ShaderModule createShaderFromFile(vk::Device device, std::string filename)
 {
     auto code = readFile(filename);
     vk::ShaderModuleCreateInfo createInfo{};
@@ -68,6 +68,21 @@ Material::Material(
       mDescriptorSet{createDescriptorSet(descriptorManager, *this)}
 {
     std::cout << "Material constructed.\n";
+}
+
+Material::Material(
+    Device& device,
+    DescriptorManager& descriptorManager,
+    TextureManager& textureManager,
+    SwapChain& swapChain,
+    Texture* depthTexture,
+    const nlohmann::json& json)
+    : mDevice{device},
+      mTexture{&textureManager.createTextureFromFile(json["texture"], vk::SamplerAddressMode::eRepeat)},
+      mVertexShader{createShaderFromFile(device, json["vertexShader"])},
+      mFragmentShader{createShaderFromFile(device, json["fragmentShader"])},
+      mDescriptorSet{createDescriptorSet(descriptorManager, *this)}
+{
 }
 
 Material::~Material()
