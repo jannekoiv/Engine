@@ -3,7 +3,6 @@
 #include "../Include/Base.h"
 #include "../Include/Buffer.h"
 #include "../Include/DescriptorManager.h"
-#include "../Include/Material.h"
 #include "../Include/Pipeline.h"
 #include "../Include/Texture.h"
 
@@ -43,9 +42,6 @@ public:
     Skybox(const Skybox&) = delete;
     Skybox(Skybox&&) = default;
 
-    Skybox& operator=(const Skybox&) = delete;
-    Skybox& operator=(Skybox&&) = default;
-
     Skybox(
         Device& device,
         DescriptorManager& descriptorManager,
@@ -53,14 +49,17 @@ public:
         SwapChain& swapChain,
         Texture& depthTexture);
 
+    Skybox& operator=(const Skybox&) = delete;
+    Skybox& operator=(Skybox&&) = default;
+
     Buffer& vertexBuffer()
     {
         return mVertexBuffer;
     }
 
-    Material& material()
+    Buffer& indexBuffer()
     {
-        return mMaterial;
+        return mIndexBuffer;
     }
 
     Pipeline& pipeline()
@@ -88,9 +87,9 @@ public:
 private:
     Device& mDevice;
     Buffer mVertexBuffer;
+    Buffer mIndexBuffer;
     Buffer mUniformBuffer;
     SkyboxUniform mUniform;
     DescriptorSet mDescriptorSet;
-    Material mMaterial;
     Pipeline mPipeline;
 };

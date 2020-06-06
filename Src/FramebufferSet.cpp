@@ -55,7 +55,7 @@ vk::RenderPass createRenderPass(
 
         colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
 
-        subpass.colorAttachmentCount = colorAttachmentRefs.size();
+        subpass.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentRefs.size());
         subpass.pColorAttachments = colorAttachmentRefs.data();
 
         attachments.push_back(colorAttachment);
@@ -140,7 +140,7 @@ std::vector<vk::Framebuffer> createFramebuffers(
 
         vk::FramebufferCreateInfo framebufferInfo{};
         framebufferInfo.renderPass = renderPass;
-        framebufferInfo.attachmentCount = attachments.size();
+        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferInfo.pAttachments = attachments.data();
         framebufferInfo.width = swapChain.extent().width;
         framebufferInfo.height = swapChain.extent().height;
@@ -159,7 +159,7 @@ std::vector<vk::Framebuffer> createFramebuffers(
 
             vk::FramebufferCreateInfo framebufferInfo{};
             framebufferInfo.renderPass = renderPass;
-            framebufferInfo.attachmentCount = attachments.size();
+            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
             framebufferInfo.pAttachments = attachments.data();
             framebufferInfo.width = swapChain.extent().width;
             framebufferInfo.height = swapChain.extent().height;

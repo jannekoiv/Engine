@@ -1,7 +1,7 @@
 #pragma once
 #include "../Include/Base.h"
-#include "../Include/FramebufferSet.h"
 #include "../Include/Buffer.h"
+#include "../Include/FramebufferSet.h"
 
 struct UboWorldView {
     glm::mat4* worldView = nullptr;
@@ -9,7 +9,7 @@ struct UboWorldView {
 
 class Device;
 class FramebufferSet;
-class Model;
+class Mesh;
 class Quad;
 class Skybox;
 class SwapChain;
@@ -30,7 +30,7 @@ public:
 
     Renderer& operator=(Renderer&&) = delete;
 
-    void drawFrame(std::vector<Model>& models, Skybox& skybox, Quad& quad, DirectionalLight& light);
+    void drawFrame(std::vector<Mesh>& models, Skybox& skybox, Quad& quad, DirectionalLight& light);
 
 private:
     Device& mDevice;

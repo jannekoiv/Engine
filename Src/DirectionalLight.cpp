@@ -1,31 +1,35 @@
 #include "../Include/DirectionalLight.h"
 #include "../Include/Device.h"
 #include "../Include/FramebufferSet.h"
-#include "../Include/Model.h"
+#include "../Include/Mesh.h"
 #include "../Include/Quad.h"
 #include "../Include/Skybox.h"
 #include "../Include/SwapChain.h"
 #include "../Include/Texture.h"
-#include "stb_image.h"
 #include <fstream>
 #include <iostream>
+#include <stb_image.h>
 
-static Material createMaterial(
-    Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture& depthTexture)
-{
-    auto vertexShader = createShaderFromFile(device, "d:/Shaders/shadowvert.spv");
-    depthTexture.transitionLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+//static Material createMaterial(
+//    Device& device,
+//    DescriptorManager& descriptorManager,
+//    SwapChain& swapChain,
+//    Texture& depthTexture)
+//{
+//    //auto vertexShader = createShaderFromFile(device, "d:/Shaders/shadowvert.spv");
+//    depthTexture.transitionLayout(
+//        vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+//
+//    return Material{device, descriptorManager, swapChain, &depthTexture, nullptr};
+//}
 
-    return Material{device, descriptorManager, swapChain, &depthTexture, nullptr, vertexShader, nullptr};
-}
-
-DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager)
-{
-    std::vector<vk::DescriptorSetLayoutBinding> bindings = {
-        {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}};
-    DescriptorSet descriptorSet = descriptorManager.createDescriptorSet(bindings);
-    return descriptorSet;
-}
+//DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager)
+//{
+//    std::vector<vk::DescriptorSetLayoutBinding> bindings = {
+//        {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}};
+//    DescriptorSet descriptorSet = descriptorManager.createDescriptorSet(bindings);
+//    return descriptorSet;
+//}
 
 //static std::vector<Buffer> createUniformBuffers(Device& device, size_t modelCount)
 //{
@@ -49,12 +53,18 @@ static glm::mat4 orthoProjMatrix()
 
 static vk::CommandBuffer createCommandBuffer(Device& device)
 {
-    vk::CommandBufferAllocateInfo commandBufferInfo{device.commandPool(), vk::CommandBufferLevel::ePrimary, 1};
-    auto commandBuffer = static_cast<vk::Device>(device).allocateCommandBuffers(commandBufferInfo).front();
+    vk::CommandBufferAllocateInfo commandBufferInfo{
+        device.commandPool(), vk::CommandBufferLevel::ePrimary, 1};
+    auto commandBuffer =
+        static_cast<vk::Device>(device).allocateCommandBuffers(commandBufferInfo).front();
     return commandBuffer;
 }
 
-DirectionalLight::DirectionalLight(Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain)
+DirectionalLight::DirectionalLight(
+    Device& device,
+    DescriptorManager& descriptorManager,
+    TextureManager& textureManager,
+    SwapChain& swapChain)
     : mDevice{device},
       mSwapChain{swapChain},
       mCommandBuffer{createCommandBuffer(mDevice)},
@@ -70,21 +80,23 @@ DirectionalLight::DirectionalLight(Device& device, DescriptorManager& descriptor
           vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eDepthStencilAttachment,
           vk::MemoryPropertyFlagBits::eDeviceLocal,
           vk::SamplerAddressMode::eClampToBorder},
-      mMaterial{createMaterial(mDevice, descriptorManager, swapChain, mDepthTexture)},
       mPipeline{
           mDevice,
-          mMaterial,
+          descriptorManager,
+          textureManager,
           swapChain,
           &mDepthTexture,
+          MeshVertex::bindingDescription(),
+          MeshVertex::attributeDescriptions(),
           nullptr,
-          ModelVertex::bindingDescription(),
-          ModelVertex::attributeDescriptions(),
           {{"vertexShader", "d:/Shaders/shadowvert.spv"}, {"usage", "ShadowMap"}}}
 {
+    mDepthTexture.transitionLayout(
+        vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
     std::cout << "Directional light constructed.\n";
 }
 
-void DirectionalLight::drawFrame(std::vector<Model>& models, vk::Extent2D swapChainExtent)
+void DirectionalLight::drawFrame(std::vector<Mesh>& models, vk::Extent2D swapChainExtent)
 {
     vk::CommandBufferBeginInfo beginInfo{};
     beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
@@ -104,13 +116,17 @@ void DirectionalLight::drawFrame(std::vector<Model>& models, vk::Extent2D swapCh
     mCommandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
     mCommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline);
 
-    for (Model& model : models) {
+    for (Mesh& model : models) {
         mCommandBuffer.bindVertexBuffers(0, {model.vertexBuffer()}, {0});
         mCommandBuffer.bindIndexBuffer(model.indexBuffer(), 0, vk::IndexType::eUint32);
 
         glm::mat4 worldViewProj = mProjMatrix * viewMatrix() * model.worldMatrix();
         mCommandBuffer.pushConstants(
-            mPipeline.layout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(float) * 16, &worldViewProj);
+            mPipeline.layout(),
+            vk::ShaderStageFlagBits::eVertex,
+            0,
+            sizeof(float) * 16,
+            &worldViewProj);
 
         mCommandBuffer.drawIndexed(static_cast<uint32_t>(model.indexCount()), 1, 0, 0, 0);
     }

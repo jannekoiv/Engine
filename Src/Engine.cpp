@@ -6,10 +6,17 @@ GLFWwindow* initWindow(const int width, const int height)
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    GLFWwindow* window = glfwCreateWindow(width, height, "Totaalinen Yliruletus Rendering Engine", nullptr, nullptr);
+    GLFWwindow* window =
+        glfwCreateWindow(width, height, "Totaalinen Yliruletus Rendering Engine", nullptr, nullptr);
     //glfwSetKeyCallback(window, keyCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     return window;
+}
+
+int initPaskaa()
+{
+    std::cout << "PASKAA\n";
+    return 0;
 }
 
 Engine::Engine(const int width, const int height, const bool enableValidationLayers)
@@ -30,10 +37,9 @@ Engine::Engine(const int width, const int height, const bool enableValidationLay
       mTextureManager{mDevice},
       mRenderer{mDevice, mSwapChain, mDepthTexture},
       mSkybox{mDevice, mDescriptorManager, mTextureManager, mSwapChain, mDepthTexture},
-      mLight{mDevice, mDescriptorManager, mSwapChain},
-      mQuad{mDevice, mDescriptorManager, mSwapChain, mLight.depthTexture()}
+      mLight{mDevice, mDescriptorManager, mTextureManager, mSwapChain},
+      mQuad{mDevice, mDescriptorManager, mTextureManager, mSwapChain, mLight.depthTexture()}
 {
-    std::cout << "Shadowmap in engine constructor body " << mLight.mDepthTexture.imageView() << "\n";
     std::cout << "Engine initialized\n";
 }
 
@@ -41,17 +47,23 @@ Engine::~Engine()
 {
 }
 
-Model Engine::createModelFromFile(std::string filename)
+Mesh Engine::createModelFromFile(std::string filename)
 {
-    return ::createModelFromFile(
-        mDevice, mDescriptorManager, mTextureManager, mSwapChain, mDepthTexture, &mLight.depthTexture(), filename);
+    return ::createMeshFromFile(
+        mDevice,
+        mDescriptorManager,
+        mTextureManager,
+        mSwapChain,
+        mDepthTexture,
+        &mLight.depthTexture(),
+        filename);
 }
 
-void Engine::drawFrame(std::vector<Model>& models)
+void Engine::drawFrame(std::vector<Mesh>& models)
 {
     mCamera.update();
     const glm::mat4& world = mLight.worldMatrix();
-    for (Model& model : models) {
+    for (Mesh& model : models) {
         model.updateUniformBuffer(
             mCamera.viewMatrix(),
             mCamera.projMatrix(),

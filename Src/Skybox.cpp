@@ -15,16 +15,15 @@ static Buffer createUniformBuffer(Device& device)
 
 static Buffer createVertexBuffer(Device& device)
 {
-    std::array<SkyboxVertex, 36> vertices = {
-        {{{-1.0f, 1.0f, -1.0f}}, {{-1.0f, -1.0f, -1.0f}}, {{1.0f, -1.0f, -1.0f}},  {{1.0f, -1.0f, -1.0f}},
-         {{1.0f, 1.0f, -1.0f}},  {{-1.0f, 1.0f, -1.0f}},  {{-1.0f, -1.0f, 1.0f}},  {{-1.0f, -1.0f, -1.0f}},
-         {{-1.0f, 1.0f, -1.0f}}, {{-1.0f, 1.0f, -1.0f}},  {{-1.0f, 1.0f, 1.0f}},   {{-1.0f, -1.0f, 1.0f}},
-         {{1.0f, -1.0f, -1.0f}}, {{1.0f, -1.0f, 1.0f}},   {{1.0f, 1.0f, 1.0f}},    {{1.0f, 1.0f, 1.0f}},
-         {{1.0f, 1.0f, -1.0f}},  {{1.0f, -1.0f, -1.0f}},  {{-1.0f, -1.0f, 1.0f}},  {{-1.0f, 1.0f, 1.0f}},
-         {{1.0f, 1.0f, 1.0f}},   {{1.0f, 1.0f, 1.0f}},    {{1.0f, -1.0f, 1.0f}},   {{-1.0f, -1.0f, 1.0f}},
-         {{-1.0f, 1.0f, -1.0f}}, {{1.0f, 1.0f, -1.0f}},   {{1.0f, 1.0f, 1.0f}},    {{1.0f, 1.0f, 1.0f}},
-         {{-1.0f, 1.0f, 1.0f}},  {{-1.0f, 1.0f, -1.0f}},  {{-1.0f, -1.0f, -1.0f}}, {{-1.0f, -1.0f, 1.0f}},
-         {{1.0f, -1.0f, -1.0f}}, {{1.0f, -1.0f, -1.0f}},  {{-1.0f, -1.0f, 1.0f}},  {{1.0f, -1.0f, 1.0f}}}};
+    std::array<SkyboxVertex, 8> vertices = {
+        {{{-1.0f, 1.0f, 1.0f}},
+         {{-1.0f, -1.0f, 1.0f}},
+         {{1.0f, -1.0f, 1.0f}},
+         {{1.0f, 1.0f, 1.0f}},
+         {{-1.0f, 1.0f, -1.0f}},
+         {{-1.0f, -1.0f, -1.0f}},
+         {{1.0f, -1.0f, -1.0f}},
+         {{1.0f, 1.0f, -1.0f}}}};
 
     vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
@@ -45,11 +44,39 @@ static Buffer createVertexBuffer(Device& device)
         vk::MemoryPropertyFlagBits::eDeviceLocal);
 
     stagingBuffer.copy(vertexBuffer);
-
     return vertexBuffer;
 }
 
-static DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, vk::Buffer uniformBuffer)
+static Buffer createIndexBuffer(Device& device)
+{
+    std::array<uint32_t, 36> indices = {1, 0, 3, 1, 3, 2, 2, 3, 7, 2, 7, 6, 6, 7, 4, 6, 4, 5,
+                                        5, 4, 0, 5, 0, 1, 1, 2, 6, 1, 6, 5, 0, 7, 3, 0, 4, 7};
+
+    vk::DeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+    Buffer stagingBuffer(
+        device,
+        bufferSize,
+        vk::BufferUsageFlagBits::eTransferSrc,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+    void* data = nullptr;
+    static_cast<vk::Device>(device).mapMemory(stagingBuffer.memory(), 0, bufferSize, {}, &data);
+    memcpy(data, indices.data(), (size_t)bufferSize);
+    static_cast<vk::Device>(device).unmapMemory(stagingBuffer.memory());
+
+    Buffer indexBuffer(
+        device,
+        bufferSize,
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
+        vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+    stagingBuffer.copy(indexBuffer);
+    return indexBuffer;
+}
+
+static DescriptorSet createDescriptorSet(
+    DescriptorManager& descriptorManager, vk::Buffer uniformBuffer)
 {
     std::vector<vk::DescriptorSetLayoutBinding> bindings = {
         {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}};
@@ -65,26 +92,6 @@ static DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, v
     return descriptorSet;
 }
 
-static Material createMaterial(
-    Device& device,
-    DescriptorManager& descriptorManager,
-    TextureManager& textureManager,
-    SwapChain& swapChain,
-    Texture& depthTexture)
-{
-    auto& texture = textureManager.createCubeTextureFromFile(
-        {"d:/skybox/right.jpg",
-         "d:/skybox/left.jpg",
-         "d:/skybox/top.jpg",
-         "d:/skybox/bottom.jpg",
-         "d:/skybox/front.jpg",
-         "d:/skybox/back.jpg"});
-    auto vertexShader = createShaderFromFile(device, "d:/Shaders/skyboxvert.spv");
-    auto fragmentShader = createShaderFromFile(device, "d:/Shaders/skyboxfrag.spv");
-
-    return Material{device, descriptorManager, swapChain, &depthTexture, &texture, vertexShader, fragmentShader};
-}
-
 Skybox::Skybox(
     Device& device,
     DescriptorManager& descriptorManager,
@@ -93,20 +100,26 @@ Skybox::Skybox(
     Texture& depthTexture)
     : mDevice{device},
       mVertexBuffer{createVertexBuffer(mDevice)},
+      mIndexBuffer{createIndexBuffer(mDevice)},
       mUniformBuffer{createUniformBuffer(mDevice)},
       mDescriptorSet{createDescriptorSet(descriptorManager, mUniformBuffer)},
-      mMaterial{createMaterial(device, descriptorManager, textureManager, swapChain, depthTexture)},
       mPipeline{
           mDevice,
-          mMaterial,
+          descriptorManager,
+          textureManager,
           swapChain,
           &depthTexture,
-          mDescriptorSet.layout(),
           SkyboxVertex::bindingDescription(),
           SkyboxVertex::attributeDescriptions(),
+          mDescriptorSet.layout(),
           {{"vertexShader", "d:/Shaders/skyboxvert.spv"},
            {"fragmentShader", "d:/Shaders/skyboxfrag.spv"},
-           {"usage", "Skybox"}}}
+           {"texture", "d:/skybox/left.jpg"},
+           {"usage", "Skybox"},
+           {"depthCompareOp", "LessOrEqual"},
+           {"depthTestEnable", true},
+           {"depthWriteEnable", true},
+           {"cullMode", "Back"}}}
 {
     mUniform.world = glm::mat4{1.0f};
     std::cout << "Skybox constructed.\n";

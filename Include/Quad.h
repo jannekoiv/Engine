@@ -3,7 +3,6 @@
 #include "../Include/Base.h"
 #include "../Include/Buffer.h"
 #include "../Include/DescriptorManager.h"
-#include "../Include/Material.h"
 #include "../Include/Pipeline.h"
 #include "../Include/Texture.h"
 
@@ -48,17 +47,13 @@ public:
     Quad(
         Device& device,
         DescriptorManager& descriptorManager,
+        TextureManager& textureManager,
         SwapChain& swapChain,
         Texture& texture);
 
     Buffer& vertexBuffer()
     {
         return mVertexBuffer;
-    }
-
-    Material& material()
-    {
-        return mMaterial;
     }
 
     Pipeline& pipeline()
@@ -86,6 +81,5 @@ private:
     QuadUniform mUniform;
     DescriptorManager& mDescriptorManager;
     DescriptorSet mDescriptorSet;
-    Material mMaterial;
     Pipeline mPipeline;
 };

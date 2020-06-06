@@ -1,13 +1,12 @@
 
 #pragma once
 
+#include "../Include/DescriptorSet.h"
 #include "../Include/FramebufferSet.h"
-#include "../Include/Material.h"
 
-class Device;
-class DescriptorSetLayout;
-class RenderPass;
-class Material;
+class DescriptorManager;
+class TextureManager;
+class Texture;
 
 class Pipeline {
 public:
@@ -17,12 +16,13 @@ public:
 
     Pipeline(
         Device& device,
-        Material& material,
+        DescriptorManager& descriptorManager,
+        TextureManager& textureManager,
         SwapChain& swapChain,
         Texture* depthTexture,
-        vk::DescriptorSetLayout descriptorSetLayout,
         vk::VertexInputBindingDescription bindingDescription,
         std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
+        vk::DescriptorSetLayout descriptorSetLayout,
         const nlohmann::json& json);
 
     ~Pipeline();
@@ -46,9 +46,16 @@ public:
         return mPipelineLayout;
     }
 
+    DescriptorSet& descriptorSet()
+    {
+        return mDescriptorSet;
+    }
+
 private:
     Device& mDevice;
     FramebufferSet mFramebufferSet;
+    Texture* mTexture;
+    DescriptorSet mDescriptorSet;
     vk::PipelineLayout mPipelineLayout;
     vk::Pipeline mPipeline;
 };

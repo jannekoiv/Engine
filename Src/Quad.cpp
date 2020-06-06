@@ -15,7 +15,12 @@ static Buffer createUniformBuffer(Device& device)
 static Buffer createVertexBuffer(Device& device)
 {
     std::array<QuadVertex, 6> vertices = {
-        {{{0.0f, 0.0f}}, {{1.0f, 1.0f}}, {{0.0f, 1.0f}}, {{0.0f, 0.0f}}, {{1.0f, 0.0f}}, {{1.0f, 1.0f}}}};
+        {{{0.0f, 0.0f}},
+         {{1.0f, 1.0f}},
+         {{0.0f, 1.0f}},
+         {{0.0f, 0.0f}},
+         {{1.0f, 0.0f}},
+         {{1.0f, 1.0f}}}};
 
     vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
@@ -40,7 +45,8 @@ static Buffer createVertexBuffer(Device& device)
     return vertexBuffer;
 }
 
-static DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, vk::Buffer uniformBuffer)
+static DescriptorSet createDescriptorSet(
+    DescriptorManager& descriptorManager, vk::Buffer uniformBuffer)
 {
     std::vector<vk::DescriptorSetLayoutBinding> bindings = {
         {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}};
@@ -56,36 +62,26 @@ static DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, v
     return descriptorSet;
 }
 
-static Material createMaterial(
-    Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture& texture)
-{
-    std::cout << "Shadowmap in quad createMaterial " << texture.imageView() << "\n";
-
-    std::cout << "creating texture\n";
-
-    auto vertexShader = createShaderFromFile(device, "d:/Shaders/quadvert.spv");
-    auto fragmentShader = createShaderFromFile(device, "d:/Shaders/quadfrag.spv");
-
-    std::cout << "creating material\n";
-
-    return Material{device, descriptorManager, swapChain, nullptr, &texture, vertexShader, fragmentShader};
-}
-
-Quad::Quad(Device& device, DescriptorManager& descriptorManager, SwapChain& swapChain, Texture& texture)
+Quad::Quad(
+    Device& device,
+    DescriptorManager& descriptorManager,
+    TextureManager& textureManager,
+    SwapChain& swapChain,
+    Texture& texture)
     : mDevice{device},
       mVertexBuffer{createVertexBuffer(mDevice)},
       mUniformBuffer{createUniformBuffer(mDevice)},
       mDescriptorManager{descriptorManager},
       mDescriptorSet{createDescriptorSet(mDescriptorManager, mUniformBuffer)},
-      mMaterial{createMaterial(device, descriptorManager, swapChain, texture)},
       mPipeline{
           mDevice,
-          mMaterial,
+          descriptorManager,
+          textureManager,
           swapChain,
           nullptr,
-          mDescriptorSet.layout(),
           QuadVertex::bindingDescription(),
           QuadVertex::attributeDescriptions(),
+          mDescriptorSet.layout(),
           {{"vertexShader", "d:/Shaders/quadvert.spv"},
            {"fragmentShader", "d:/Shaders/quadfrag.spv"},
            {"usage", "Quad"}}}
@@ -97,7 +93,8 @@ void Quad::updateUniformBuffer()
 {
     mUniform.worldView = glm::mat4(1.0f);
     mUniform.proj = glm::ortho(0.0f, 1.0f, 1.0f, 0.0f);
-    void* data = static_cast<vk::Device>(mDevice).mapMemory(mUniformBuffer.memory(), 0, sizeof(mUniform), {});
+    void* data = static_cast<vk::Device>(mDevice).mapMemory(
+        mUniformBuffer.memory(), 0, sizeof(mUniform), {});
     memcpy(data, &mUniform, sizeof(QuadUniform));
     static_cast<vk::Device>(mDevice).unmapMemory(mUniformBuffer.memory());
 }
