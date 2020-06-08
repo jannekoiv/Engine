@@ -47,24 +47,86 @@ Engine::~Engine()
 {
 }
 
-Mesh Engine::createModelFromFile(std::string filename)
+Object Engine::createModelFromFile(std::string filename)
 {
-    return ::createMeshFromFile(
+    std::ifstream file(filename, std::ios::in | std::ios::binary);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open object file!");
+    }
+
+    std::string header = readString(file);
+    if (header != "paskaformaatti 1.0") {
+        std::cout << "HEADER\n";
+        throw std::runtime_error("Header file not matching!");
+    }
+
+    glm::mat4 worldMatrix;
+    file.read(reinterpret_cast<char*>(&worldMatrix), sizeof(glm::mat4));
+
+    uint32_t vertexCount = readInt(file);
+    std::cout << "vertex count " << vertexCount << std::endl;
+    std::vector<Vertex> vertices(vertexCount);
+    for (Vertex& vertex : vertices) {
+        vertex.position.x = readFloat(file);
+        vertex.position.y = readFloat(file);
+        vertex.position.z = readFloat(file);
+        vertex.normal.x = readFloat(file);
+        vertex.normal.y = readFloat(file);
+        vertex.normal.z = readFloat(file);
+        vertex.texCoord.x = readFloat(file);
+        vertex.texCoord.y = readFloat(file);
+    }
+
+    uint32_t indexCount = readInt(file);
+    std::cout << "index count " << indexCount << std::endl;
+    std::vector<uint32_t> indices(indexCount);
+    for (uint32_t& index : indices) {
+        index = readInt(file);
+    }
+
+    auto materialFilename = readString(file);
+    using Json = nlohmann::json;
+    std::ifstream materialFile{materialFilename};
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open material file!");
+    }
+    Json json;
+    materialFile >> json;
+
+    //Material material =
+    //    createMaterialFromFile(device, descriptorManager, textureManager, swapChain, &depthTexture, materialFilename);
+
+    auto keyframeCount = readInt(file);
+    std::cout << "keyframeCount " << keyframeCount << "\n";
+    std::vector<glm::mat4> keyframes(keyframeCount);
+    for (auto i = 0; i < keyframeCount; ++i) {
+        file.read(reinterpret_cast<char*>(&keyframes[i]), sizeof(glm::mat4));
+        keyframes[i][3][0] *= 0.001f;
+        keyframes[i][3][1] *= 0.001f;
+        keyframes[i][3][2] *= 0.001f;
+    }
+
+    file.close();
+    return Object{
         mDevice,
         mDescriptorManager,
         mTextureManager,
         mSwapChain,
         mDepthTexture,
+        worldMatrix,
+        vertices,
+        indices,
+        json,
         &mLight.depthTexture(),
-        filename);
+        keyframes};
 }
 
-void Engine::drawFrame(std::vector<Mesh>& models)
+void Engine::drawFrame(std::vector<Object>& objects)
 {
     mCamera.update();
     const glm::mat4& world = mLight.worldMatrix();
-    for (Mesh& model : models) {
-        model.updateUniformBuffer(
+    for (Object& object : objects) {
+        object.updateUniformBuffer(
             mCamera.viewMatrix(),
             mCamera.projMatrix(),
             mLight.projMatrix() * mLight.viewMatrix(),
@@ -74,6 +136,6 @@ void Engine::drawFrame(std::vector<Mesh>& models)
     mSkybox.updateUniformBuffer(glm::mat4(glm::mat3(mCamera.viewMatrix())), mCamera.projMatrix());
     mQuad.updateUniformBuffer();
 
-    mLight.drawFrame(models, mSwapChain.extent());
-    mRenderer.drawFrame(models, mSkybox, mQuad, mLight);
+    mLight.drawFrame(objects, mSwapChain.extent());
+    mRenderer.drawFrame(objects, mSkybox, mQuad, mLight);
 }

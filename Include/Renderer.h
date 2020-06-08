@@ -8,13 +8,14 @@ struct UboWorldView {
 };
 
 class Device;
+class DirectionalLight;
 class FramebufferSet;
 class Mesh;
+class Object;
 class Quad;
 class Skybox;
 class SwapChain;
 class Texture;
-class DirectionalLight;
 
 class Renderer {
 public:
@@ -30,7 +31,7 @@ public:
 
     Renderer& operator=(Renderer&&) = delete;
 
-    void drawFrame(std::vector<Mesh>& models, Skybox& skybox, Quad& quad, DirectionalLight& light);
+    void drawFrame(std::vector<Object>& objects, Skybox& skybox, Quad& quad, DirectionalLight& light);
 
 private:
     Device& mDevice;

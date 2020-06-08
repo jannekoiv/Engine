@@ -5,7 +5,7 @@
 #include "../Include/DescriptorManager.h"
 #include "../Include/Device.h"
 #include "../Include/DirectionalLight.h"
-#include "../Include/Mesh.h"
+#include "../Include/Object.h"
 #include "../Include/Quad.h"
 #include "../Include/Renderer.h"
 #include "../Include/Skybox.h"
@@ -32,14 +32,14 @@ public:
         glfwSetKeyCallback(mWindow, callback);
     }
 
-    Mesh createModelFromFile(std::string filename);
+    Object createModelFromFile(std::string filename);
 
     GLFWwindow* window()
     {
         return mWindow;
     }
 
-    void drawFrame(std::vector<Mesh>& models);
+    void drawFrame(std::vector<Object>& objects);
 
     Camera& camera()
     {

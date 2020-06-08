@@ -3,7 +3,6 @@
 #include "../Include/Device.h"
 #include "../Include/DirectionalLight.h"
 #include "../Include/FramebufferSet.h"
-#include "../Include/Mesh.h"
 #include "../Include/Quad.h"
 #include "../Include/Skybox.h"
 #include "../Include/SwapChain.h"
@@ -193,33 +192,33 @@ static void clearPass(
 
 float t2 = 1.0f;
 
-static void drawModelsPass(
+static void drawObjectsPass(
     vk::CommandBuffer commandBuffer,
     int framebufferIndex,
     vk::Extent2D swapChainExtent,
-    std::vector<Mesh>& models)
+    std::vector<Object>& objects)
 {
-    for (Mesh& model : models) {
+    for (auto& object : objects) {
         vk::RenderPassBeginInfo renderPassInfo;
-        renderPassInfo.renderPass = models.front().pipeline().framebufferSet().renderPass();
+        renderPassInfo.renderPass = objects.front().pipeline().framebufferSet().renderPass();
         renderPassInfo.framebuffer =
-            models.front().pipeline().framebufferSet().frameBuffer(framebufferIndex);
+            objects.front().pipeline().framebufferSet().frameBuffer(framebufferIndex);
         renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
         renderPassInfo.renderArea.extent = swapChainExtent;
 
         commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, model.pipeline());
-        commandBuffer.bindVertexBuffers(0, {model.vertexBuffer()}, {0});
-        commandBuffer.bindIndexBuffer(model.indexBuffer(), 0, vk::IndexType::eUint32);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, object.pipeline());
+        commandBuffer.bindVertexBuffers(0, {object.vertexBuffer()}, {0});
+        commandBuffer.bindIndexBuffer(object.indexBuffer(), 0, vk::IndexType::eUint32);
 
         commandBuffer.bindDescriptorSets(
             vk::PipelineBindPoint::eGraphics,
-            model.pipeline().layout(),
+            object.pipeline().layout(),
             0,
-            {model.descriptorSet(), model.pipeline().descriptorSet()},
+            {object.descriptorSet(), object.pipeline().descriptorSet()},
             nullptr);
 
-        commandBuffer.drawIndexed(static_cast<uint32_t>(model.indexCount()), 1, 0, 0, 0);
+        commandBuffer.drawIndexed(static_cast<uint32_t>(object.indexCount()), 1, 0, 0, 0);
 
         commandBuffer.endRenderPass();
     }
@@ -295,7 +294,7 @@ static void drawQuadPass(
 }
 
 void Renderer::drawFrame(
-    std::vector<Mesh>& models, Skybox& skybox, Quad& quad, DirectionalLight& light)
+    std::vector<Object>& objects, Skybox& skybox, Quad& quad, DirectionalLight& light)
 {
     uint32_t imageIndex = 0;
     static_cast<vk::Device>(mDevice).acquireNextImageKHR(
@@ -317,7 +316,7 @@ void Renderer::drawFrame(
         mClearFramebufferSet.frameBuffer(imageIndex),
         mSwapChain.extent());
 
-    drawModelsPass(commandBuffer, imageIndex, mSwapChain.extent(), models);
+    drawObjectsPass(commandBuffer, imageIndex, mSwapChain.extent(), objects);
     //drawSkyboxPass(commandBuffer, imageIndex, mSwapChain.extent(), skybox);
     //drawQuadPass(commandBuffer, imageIndex, mSwapChain.extent(), quad);
 

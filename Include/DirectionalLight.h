@@ -4,7 +4,7 @@
 #include "../Include/DescriptorManager.h"
 #include "../Include/FramebufferSet.h"
 //#include "../Include/Material.h"
-#include "../Include/Mesh.h"
+#include "../Include/Object.h"
 #include "../Include/Pipeline.h"
 
 class Device;
@@ -23,7 +23,7 @@ public:
         TextureManager& textureManager,
         SwapChain& swapChain);
 
-    void drawFrame(std::vector<Mesh>& models, vk::Extent2D swapChainExtent);
+    void drawFrame(std::vector<Object>& objects, vk::Extent2D swapChainExtent);
 
     Texture& depthTexture()
     {
