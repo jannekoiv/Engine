@@ -22,7 +22,8 @@ public:
         Texture* depthTexture,
         vk::VertexInputBindingDescription bindingDescription,
         std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
-        vk::DescriptorSetLayout descriptorSetLayout,
+        vk::DescriptorSetLayout descriptorSetLayout1,
+        vk::DescriptorSetLayout descriptorSetLayout2,
         const nlohmann::json& json);
 
     ~Pipeline();

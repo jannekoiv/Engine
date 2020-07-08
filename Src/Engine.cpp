@@ -6,8 +6,8 @@ GLFWwindow* initWindow(const int width, const int height)
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    GLFWwindow* window =
-        glfwCreateWindow(width, height, "Totaalinen Yliruletus Rendering Engine", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(
+        width, height, "Totaalinen Yliruletus Rendering Engine", nullptr, nullptr);
     //glfwSetKeyCallback(window, keyCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     return window;
@@ -30,15 +30,16 @@ Engine::Engine(const int width, const int height, const bool enableValidationLay
           vk::Extent3D{mSwapChain.extent().width, mSwapChain.extent().height, 1},
           findDepthAttachmentFormat(mDevice),
           vk::ImageTiling::eOptimal,
-          vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
+          vk::ImageUsageFlagBits::eDepthStencilAttachment |
+              vk::ImageUsageFlagBits::eSampled,
           vk::MemoryPropertyFlagBits::eDeviceLocal,
           vk::SamplerAddressMode::eClampToEdge},
       mDescriptorManager{mDevice},
       mTextureManager{mDevice},
-      mRenderer{mDevice, mSwapChain, mDepthTexture},
-      mSkybox{mDevice, mDescriptorManager, mTextureManager, mSwapChain, mDepthTexture},
-      mLight{mDevice, mDescriptorManager, mTextureManager, mSwapChain},
-      mQuad{mDevice, mDescriptorManager, mTextureManager, mSwapChain, mLight.depthTexture()}
+      mRenderer{mDevice, mDescriptorManager, mSwapChain, mDepthTexture},
+      //mSkybox{mDevice, mDescriptorManager, mTextureManager, mSwapChain, mDepthTexture},
+      mLight{mDevice, mDescriptorManager, mTextureManager, mSwapChain}
+//mQuad{mDevice, mDescriptorManager, mTextureManager, mSwapChain, mLight.depthTexture()}
 {
     std::cout << "Engine initialized\n";
 }
@@ -47,7 +48,7 @@ Engine::~Engine()
 {
 }
 
-Object Engine::createModelFromFile(std::string filename)
+Object Engine::createObjectFromFile(std::string filename)
 {
     std::ifstream file(filename, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
@@ -111,13 +112,14 @@ Object Engine::createModelFromFile(std::string filename)
         mDevice,
         mDescriptorManager,
         mTextureManager,
+        mRenderer.descriptorSet(),
         mSwapChain,
         mDepthTexture,
         worldMatrix,
         vertices,
         indices,
         json,
-        &mLight.depthTexture(),
+        nullptr,
         keyframes};
 }
 
@@ -125,6 +127,12 @@ void Engine::drawFrame(std::vector<Object>& objects)
 {
     mCamera.update();
     const glm::mat4& world = mLight.worldMatrix();
+    mRenderer.updateUniformBuffer(
+        mCamera.viewMatrix(),
+        mCamera.projMatrix(),
+        mLight.projMatrix() * mLight.viewMatrix(),
+        {world[2][0], world[2][1], world[2][2]});
+
     for (Object& object : objects) {
         object.updateUniformBuffer(
             mCamera.viewMatrix(),
@@ -133,9 +141,9 @@ void Engine::drawFrame(std::vector<Object>& objects)
             {world[2][0], world[2][1], world[2][2]});
     }
 
-    mSkybox.updateUniformBuffer(glm::mat4(glm::mat3(mCamera.viewMatrix())), mCamera.projMatrix());
-    mQuad.updateUniformBuffer();
+    //mSkybox.updateUniformBuffer(glm::mat4(glm::mat3(mCamera.viewMatrix())), mCamera.projMatrix());
+    //mQuad.updateUniformBuffer();
 
-    mLight.drawFrame(objects, mSwapChain.extent());
-    mRenderer.drawFrame(objects, mSkybox, mQuad, mLight);
+    //mLight.drawFrame(objects, mSwapChain.extent());
+    mRenderer.drawFrame(objects);
 }

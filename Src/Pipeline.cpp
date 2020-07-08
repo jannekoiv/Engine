@@ -24,10 +24,225 @@ Pipeline::Pipeline(Pipeline&& rhs)
     rhs.mTexture = nullptr;
 }
 
+std::vector<uint32_t> readSpirvFile(const std::string& filename)
+{
+    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open file!");
+    }
+
+    size_t fileSize = (size_t)file.tellg();
+    std::vector<char> buffer(fileSize);
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+    file.close();
+
+    std::vector<uint32_t> buffer32(buffer.size() / sizeof(uint32_t));
+    memcpy(buffer32.data(), buffer.data(), buffer.size());
+    return buffer32;
+}
+
+bool hasKey(const nlohmann::json& json, const std::string& key)
+{
+    if (json.find(key) != json.end()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+struct UniformMember {
+    std::string name;
+    spirv_cross::SPIRType type;
+};
+
+struct Uniform {
+    std::string name;
+    unsigned set;
+    unsigned binding;
+    std::list<UniformMember> members;
+};
+
+struct Sampler {
+    std::string name;
+    unsigned set;
+    unsigned binding;
+};
+
+struct DescriptorInfo {
+    std::list<Uniform> uniforms;
+    //std::list<Sampler> samplers;
+};
+
+//std::vector<vk::DescriptorSetLayoutBinding> bindings = {
+//    {0,
+//     vk::DescriptorType::eUniformBuffer,
+//     1,
+//     vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment}};
+
+std::string stringType(spirv_cross::SPIRType type)
+{
+    if (type.basetype == spirv_cross::SPIRType::Float) {
+        return "float";
+    } else if (type.basetype == spirv_cross::SPIRType::Double) {
+        return "double";
+    } else {
+        return "unknown";
+    }
+}
+
+std::vector<vk::DescriptorSetLayoutBinding> descriptorBindings(
+    DescriptorInfo& descriptorInfo)
+{
+    std::vector<vk::DescriptorSetLayoutBinding> bindings;
+
+    for (auto& uniform : descriptorInfo.uniforms) {
+        vk::DescriptorSetLayoutBinding binding;
+
+        std::cout << uniform.name << " " << uniform.set << " " << uniform.binding << "\n";
+
+        std::cout << "Uniform member count " << uniform.members.size() << "\n";
+        for (auto& member : uniform.members) {
+            std::cout << member.name << " " << stringType(member.type) << "\n";
+        }
+
+        std::cout << "\n";
+    }
+
+    return bindings;
+}
+
+vk::DescriptorSetLayout createDescriptorSetLayout(
+    vk::Device device, DescriptorInfo& descriptorInfo)
+{
+    auto bindings = descriptorBindings(descriptorInfo);
+
+    vk::DescriptorSetLayoutCreateInfo layoutInfo;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings = bindings.data();
+
+    //vk::DescriptorSetLayout layout =
+    //    device.createDescriptorSetLayout(layoutInfo, nullptr);
+    //return layout;
+    return nullptr;
+}
+
+void printDescriptor(DescriptorInfo& descriptor)
+{
+    std::cout << "Uniform count " << descriptor.uniforms.size() << "\n\n";
+
+    for (auto& uniform : descriptor.uniforms) {
+        std::cout << uniform.name << " " << uniform.set << " " << uniform.binding << "\n";
+
+        std::cout << "Uniform member count " << uniform.members.size() << "\n";
+        for (auto& member : uniform.members) {
+            std::cout << member.name << "\n";
+        }
+
+        std::cout << "\n";
+    }
+
+    //std::cout << "Sampler count " << descriptor.samplers.size() << "\n\n";
+
+    //for (auto& sampler : descriptor.samplers) {
+    //    std::cout << sampler.name << " " << sampler.set << " " << sampler.binding << "\n";
+    //    std::cout << "\n";
+    //}
+}
+
+DescriptorInfo parse(const nlohmann::json& json)
+{
+    DescriptorInfo descriptor;
+
+    if (!hasKey(json, "fragmentShader")) {
+        return descriptor;
+    }
+
+    std::cout << "Fragment shader resources:\n";
+    auto spirvBinary = readSpirvFile(json["fragmentShader"]);
+    spirv_cross::Compiler compiler(std::move(spirvBinary));
+
+    spirv_cross::ShaderResources resources = compiler.get_shader_resources();
+
+    for (auto& buffer : resources.uniform_buffers) {
+        Uniform uniform{
+            buffer.name,
+            compiler.get_decoration(buffer.id, spv::DecorationDescriptorSet),
+            compiler.get_decoration(buffer.id, spv::DecorationBinding)};
+
+        auto& type = compiler.get_type(buffer.base_type_id);
+        auto count = type.member_types.size();
+
+        for (auto i = 0; i < count; i++) {
+            UniformMember uniformMember{
+                compiler.get_member_name(type.self, i),
+                compiler.get_type(type.member_types[i])};
+            uniform.members.push_back(uniformMember);
+
+            if (compiler.get_member_name(type.self, i) == "vektori3") {
+                std::cout << "COLUMNS " << compiler.get_type(type.member_types[i]).columns
+                          << "\n";
+                std::cout << "VECSIZE " << compiler.get_type(type.member_types[i]).vecsize
+                          << "\n";
+                std::cout << "WIDTH " << compiler.get_type(type.member_types[i]).width
+                          << "\n";
+            }
+
+            auto memberType = compiler.get_type(type.member_types[i]);
+
+            //std::cout << "      Uniform member type: " << memberType.basetype
+            //          << " is float: "
+            //          << (memberType.basetype == spirv_cross::SPIRType::Float) << "\n";
+
+            //auto offset = compiler.type_struct_member_offset(type, i);
+            //std::cout << "      Uniform member offset: " << offset << "\n";
+
+            //auto memberSize = compiler.get_declared_struct_member_size(type, i);
+            //std::cout << "      Uniform member size: " << memberSize << "\n";
+
+            if (!memberType.array.empty()) {
+                //auto arrayStride = compiler.type_struct_member_array_stride(type, i);
+                //std::cout << "      Uniform member is array with stride: " << arrayStride
+                //<< "\n";
+            } else {
+                //std::cout << "      Uniform member is not array\n";
+            }
+
+            //if (memberType.columns > 1) {
+            //    auto matrixStride = compiler.type_struct_member_matrix_stride(type, i);
+            //}
+            std::cout << "\n";
+        }
+        descriptor.uniforms.push_back(uniform);
+    }
+
+    //for (auto& image : resources.sampled_images) {
+    //    Sampler sampler{
+    //        image.name,
+    //        compiler.get_decoration(image.id, spv::DecorationDescriptorSet),
+    //        compiler.get_decoration(image.id, spv::DecorationBinding)};
+
+    //    descriptor.samplers.push_back(sampler);
+    //}
+
+    //for (auto& input : resources.stage_inputs) {
+    //    std::cout << "Input name: " << input.name << "\n";
+    //}
+
+    //for (auto& output : resources.stage_outputs) {
+    //    std::cout << "Output name: " << output.name << "\n";
+    //}
+
+    //printDescriptor(descriptor);
+
+    return descriptor;
+}
+
 vk::PipelineLayout createPipelineLayout(
     Device& device,
-    vk::DescriptorSetLayout descriptorSetLayout,
+    vk::DescriptorSetLayout descriptorSetLayout1,
     vk::DescriptorSetLayout descriptorSetLayout2,
+    vk::DescriptorSetLayout descriptorSetLayout3,
     const nlohmann::json& json)
 {
     vk::PushConstantRange pushConstantRange{};
@@ -38,11 +253,14 @@ vk::PipelineLayout createPipelineLayout(
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
 
     std::vector<vk::DescriptorSetLayout> layouts{};
-    if (descriptorSetLayout) {
-        layouts.push_back(descriptorSetLayout);
+    if (descriptorSetLayout1) {
+        layouts.push_back(descriptorSetLayout1);
     }
     if (descriptorSetLayout2) {
         layouts.push_back(descriptorSetLayout2);
+    }
+    if (descriptorSetLayout3) {
+        layouts.push_back(descriptorSetLayout3);
     }
 
     pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
@@ -76,16 +294,8 @@ vk::ShaderModule createShaderFromFileByKey(
     }
 }
 
-bool hasKey(const nlohmann::json& json, const std::string& key)
-{
-    if (json.find(key) != json.end()) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-vk::PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo(const nlohmann::json& json)
+vk::PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo(
+    const nlohmann::json& json)
 {
     vk::PipelineRasterizationStateCreateInfo info{};
 
@@ -141,7 +351,8 @@ vk::CompareOp compareOp(const std::string& op)
     }
 }
 
-vk::PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo(const nlohmann::json& json)
+vk::PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo(
+    const nlohmann::json& json)
 {
     vk::PipelineDepthStencilStateCreateInfo depthStencil{};
 
@@ -181,7 +392,8 @@ ColorBlendStateCreateInfo colorBlendStateCreateInfo(const nlohmann::json& json)
     return info;
 }
 
-vk::PipelineMultisampleStateCreateInfo multisampleStateCreateInfo(const nlohmann::json& json)
+vk::PipelineMultisampleStateCreateInfo multisampleStateCreateInfo(
+    const nlohmann::json& json)
 {
     vk::PipelineMultisampleStateCreateInfo info{};
     info.sampleShadingEnable = false;
@@ -231,7 +443,8 @@ vk::PipelineVertexInputStateCreateInfo vertexInputStateCreateInfo(
     vk::PipelineVertexInputStateCreateInfo info{};
     info.vertexBindingDescriptionCount = 1;
     info.pVertexBindingDescriptions = &bindingDescription;
-    info.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    info.vertexAttributeDescriptionCount =
+        static_cast<uint32_t>(attributeDescriptions.size());
     info.pVertexAttributeDescriptions = attributeDescriptions.data();
     return info;
 }
@@ -242,24 +455,6 @@ vk::PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo()
     info.topology = vk::PrimitiveTopology::eTriangleList;
     info.primitiveRestartEnable = false;
     return info;
-}
-
-std::vector<uint32_t> readSpirvFile(const std::string& filename)
-{
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
-    if (!file.is_open()) {
-        throw std::runtime_error("Failed to open file!");
-    }
-
-    size_t fileSize = (size_t)file.tellg();
-    std::vector<char> buffer(fileSize);
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-    file.close();
-
-    std::vector<uint32_t> buffer32(buffer.size() / sizeof(uint32_t));
-    memcpy(buffer32.data(), buffer.data(), buffer.size());
-    return buffer32;
 }
 
 std::vector<vk::PipelineShaderStageCreateInfo> createShaderStages(
@@ -283,73 +478,6 @@ std::vector<vk::PipelineShaderStageCreateInfo> createShaderStages(
         shaderStages.push_back(fragShaderStageInfo);
     }
 
-    if (!hasKey(json, "fragmentShader")) {
-        return shaderStages;
-    }
-
-    std::cout << "Fragment shader resources:\n";
-    auto spirvBinary = readSpirvFile(json["fragmentShader"]);
-    spirv_cross::Compiler compiler(std::move(spirvBinary));
-
-    spirv_cross::ShaderResources resources = compiler.get_shader_resources();
-
-    //for (auto& image : resources.sampled_images) {
-    //    std::cout << "Sampled image name: " << image.name << "\n";
-    //    std::cout << "Sampled image id: " << image.id << "\n";
-    //    std::cout << "Sampled image type id: " << image.type_id << "\n";
-    //    std::cout << "Sampled image base type id: " << image.base_type_id << "\n";
-
-    //    std::cout << "Sampler image set: "
-    //              << compiler.get_decoration(image.id, spv::DecorationDescriptorSet) << "\n";
-
-    //    std::cout << "Sampler image binding: "
-    //              << compiler.get_decoration(image.id, spv::DecorationBinding) << "\n\n";
-    //}
-
-    for (auto& buffer : resources.uniform_buffers) {
-        std::cout << "Uniform buffer name: " << buffer.name << "\n";
-
-        auto& type = compiler.get_type(buffer.base_type_id);
-        auto count = type.member_types.size();
-
-        for (auto i = 0; i < count; i++) {
-            const auto& name = compiler.get_member_name(type.self, i);
-            std::cout << "Uniform member name: " << name << "\n";
-
-            auto memberType = compiler.get_type(type.member_types[i]);
-
-            std::cout << "Uniform member type: " << memberType.basetype
-                      << " is float: " << (memberType.basetype == spirv_cross::SPIRType::Float)
-                      << "\n";
-
-            auto offset = compiler.type_struct_member_offset(type, i);
-            std::cout << "Uniform member offset: " << offset << "\n";
-
-            auto memberSize = compiler.get_declared_struct_member_size(type, i);
-            std::cout << "Uniform member size: " << memberSize << "\n";
-
-            if (!memberType.array.empty()) {
-                auto arrayStride = compiler.type_struct_member_array_stride(type, i);
-                std::cout << "Uniform member is array with stride: " << arrayStride << "\n";
-            } else {
-                std::cout << "Uniform member is not array\n";
-            }
-
-            //if (memberType.columns > 1) {
-            //    auto matrixStride = compiler.type_struct_member_matrix_stride(type, i);
-            //}
-            std::cout << "\n";
-        }
-    }
-
-    //for (auto& input : resources.stage_inputs) {
-    //    std::cout << "Input name: " << input.name << "\n";
-    //}
-
-    //for (auto& output : resources.stage_outputs) {
-    //    std::cout << "Outpu name: " << output.name << "\n";
-    //}
-
     return shaderStages;
 }
 
@@ -371,7 +499,8 @@ vk::Pipeline createPipeline(
     auto inputAssemblyState = inputAssemblyStateCreateInfo();
     pipelineInfo.pInputAssemblyState = &inputAssemblyState;
 
-    auto vertexInputState = vertexInputStateCreateInfo(bindingDescription, attributeDescriptions);
+    auto vertexInputState =
+        vertexInputStateCreateInfo(bindingDescription, attributeDescriptions);
     pipelineInfo.pVertexInputState = &vertexInputState;
 
     auto viewportState = viewportStateCreateInfo(json, swapChainExtent);
@@ -396,8 +525,8 @@ vk::Pipeline createPipeline(
     pipelineInfo.basePipelineHandle = nullptr;
     pipelineInfo.basePipelineIndex = -1;
 
-    vk::Pipeline pipeline =
-        static_cast<vk::Device>(device).createGraphicsPipeline(nullptr, pipelineInfo, nullptr);
+    vk::Pipeline pipeline = static_cast<vk::Device>(device).createGraphicsPipeline(
+        nullptr, pipelineInfo, nullptr);
 
     for (vk::PipelineShaderStageCreateInfo info : shaderStages) {
         static_cast<vk::Device>(device).destroyShaderModule(info.module);
@@ -406,10 +535,14 @@ vk::Pipeline createPipeline(
     return pipeline;
 }
 
-static DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, Texture* texture)
+static DescriptorSet createDescriptorSet(
+    DescriptorManager& descriptorManager, Texture* texture)
 {
     std::vector<vk::DescriptorSetLayoutBinding> bindings = {
-        {0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
+        {0,
+         vk::DescriptorType::eCombinedImageSampler,
+         1,
+         vk::ShaderStageFlagBits::eFragment}};
 
     DescriptorSet descriptorSet = descriptorManager.createDescriptorSet(bindings);
 
@@ -424,7 +557,8 @@ static DescriptorSet createDescriptorSet(DescriptorManager& descriptorManager, T
     return descriptorSet;
 }
 
-static Texture* createTextureFromFile(TextureManager& textureManager, const nlohmann::json& json)
+static Texture* createTextureFromFile(
+    TextureManager& textureManager, const nlohmann::json& json)
 {
     if (hasKey(json, "texture")) {
         return &textureManager.createTextureFromFile(
@@ -442,14 +576,19 @@ Pipeline::Pipeline(
     Texture* depthTexture,
     vk::VertexInputBindingDescription bindingDescription,
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions,
-    vk::DescriptorSetLayout descriptorSetLayout,
+    vk::DescriptorSetLayout descriptorSetLayout1,
+    vk::DescriptorSetLayout descriptorSetLayout2,
     const nlohmann::json& json)
     : mDevice{device},
       mFramebufferSet{mDevice, swapChain, depthTexture, json},
       mTexture{createTextureFromFile(textureManager, json)},
       mDescriptorSet{createDescriptorSet(descriptorManager, mTexture)},
-      mPipelineLayout{
-          createPipelineLayout(mDevice, descriptorSetLayout, mDescriptorSet.layout(), json)},
+      mPipelineLayout{createPipelineLayout(
+          mDevice,
+          descriptorSetLayout1,
+          mDescriptorSet.layout(),
+          descriptorSetLayout2,
+          json)},
       mPipeline{createPipeline(
           mDevice,
           mFramebufferSet,
@@ -459,6 +598,8 @@ Pipeline::Pipeline(
           mPipelineLayout,
           json)}
 {
+    auto info = parse(json);
+    createDescriptorSetLayout(mDevice, info);
 }
 
 Pipeline::~Pipeline()

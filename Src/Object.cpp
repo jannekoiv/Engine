@@ -10,7 +10,8 @@ static Buffer createVertexBuffer(Device& device, std::vector<Vertex>& vertices)
         device,
         bufferSize,
         vk::BufferUsageFlagBits::eTransferSrc,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        vk::MemoryPropertyFlagBits::eHostVisible |
+            vk::MemoryPropertyFlagBits::eHostCoherent);
 
     void* data = stagingBuffer.mapMemory();
     memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
@@ -34,10 +35,12 @@ static Buffer createIndexBuffer(Device& device, std::vector<uint32_t>& indices)
         device,
         bufferSize,
         vk::BufferUsageFlagBits::eTransferSrc,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        vk::MemoryPropertyFlagBits::eHostVisible |
+            vk::MemoryPropertyFlagBits::eHostCoherent);
 
     void* data = nullptr;
-    static_cast<vk::Device>(device).mapMemory(stagingBuffer.memory(), 0, bufferSize, {}, &data);
+    static_cast<vk::Device>(device).mapMemory(
+        stagingBuffer.memory(), 0, bufferSize, {}, &data);
     memcpy(data, indices.data(), (size_t)bufferSize);
     static_cast<vk::Device>(device).unmapMemory(stagingBuffer.memory());
 
@@ -59,22 +62,26 @@ static DescriptorSet createDescriptorSet(
         {0,
          vk::DescriptorType::eUniformBuffer,
          1,
-         vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment},
-        {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
+         vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment}};
+    //{1,
+    // vk::DescriptorType::eCombinedImageSampler,
+    // 1,
+    // vk::ShaderStageFlagBits::eFragment}};
 
     DescriptorSet descriptorSet = descriptorManager.createDescriptorSet(bindings);
 
     vk::DescriptorBufferInfo bufferInfo;
     bufferInfo.buffer = uniformBuffer;
     bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(Uniform);
+    bufferInfo.range = sizeof(ObjectUniform);
 
-    vk::DescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-    imageInfo.imageView = shadowMap->imageView();
-    imageInfo.sampler = shadowMap->sampler();
+    //vk::DescriptorImageInfo imageInfo{};
+    //imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+    //imageInfo.imageView = shadowMap->imageView();
+    //imageInfo.sampler = shadowMap->sampler();
 
-    std::vector<DescriptorWrite> writes = {{0, 0, 1, &bufferInfo}, {1, 0, 1, &imageInfo}};
+    std::vector<DescriptorWrite> writes = {
+        {0, 0, 1, &bufferInfo}}; //, {1, 0, 1, &imageInfo}};
     descriptorSet.writeDescriptors(writes);
     return descriptorSet;
 }
@@ -83,6 +90,7 @@ Object::Object(
     Device& device,
     DescriptorManager& descriptorManager,
     TextureManager& textureManager,
+    DescriptorSet& sceneDescriptorSet,
     SwapChain& swapChain,
     Texture& depthTexture,
     glm::mat4 worldMatrix,
@@ -95,12 +103,14 @@ Object::Object(
       mIndices{indices},
       mVertexBuffer(createVertexBuffer(device, mVertices)),
       mIndexBuffer(createIndexBuffer(device, mIndices)),
+      mWorldMat{worldMatrix},
       mUniform{},
       mUniformBuffer{
           device,
-          sizeof(Uniform),
+          sizeof(ObjectUniform),
           vk::BufferUsageFlagBits::eUniformBuffer,
-          vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent},
+          vk::MemoryPropertyFlagBits::eHostVisible |
+              vk::MemoryPropertyFlagBits::eHostCoherent},
       mDescriptorSet(createDescriptorSet(descriptorManager, mUniformBuffer, shadowMap)),
       mPipeline{
           device,
@@ -110,30 +120,32 @@ Object::Object(
           &depthTexture,
           Vertex::bindingDescription(),
           Vertex::attributeDescriptions(),
+          sceneDescriptorSet.layout(),
           mDescriptorSet.layout(),
           json},
       mKeyframes{keyframes},
       mIKeyframe{-1}
 {
-    mUniform.world = worldMatrix;
     std::cout << "Object constructor\n";
 }
 
 void Object::updateUniformBuffer(
     const glm::mat4& viewMatrix,
     const glm::mat4& projMatrix,
-    const glm::mat4& lightSpace,
+    const glm::mat4& lightSpaceMatrix,
     const glm::vec3& lightDir)
 {
     if (mIKeyframe >= 0) {
         mUniform.world = mKeyframes[mIKeyframe];
+    } else {
+        mUniform.world = mWorldMat;
     }
     mUniform.view = viewMatrix;
     mUniform.proj = projMatrix;
-    mUniform.lightSpace = lightSpace;
+    mUniform.lightSpace = lightSpaceMatrix;
     mUniform.lightDir = lightDir;
 
     void* data = mUniformBuffer.mapMemory();
-    memcpy(data, &mUniform, sizeof(Uniform));
+    memcpy(data, &mUniform, sizeof(ObjectUniform));
     mUniformBuffer.unmapMemory();
 }

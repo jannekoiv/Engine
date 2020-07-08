@@ -81,6 +81,7 @@ Quad::Quad(
           nullptr,
           QuadVertex::bindingDescription(),
           QuadVertex::attributeDescriptions(),
+          nullptr,
           mDescriptorSet.layout(),
           {{"vertexShader", "d:/Shaders/quadvert.spv"},
            {"fragmentShader", "d:/Shaders/quadfrag.spv"},

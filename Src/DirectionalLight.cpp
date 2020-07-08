@@ -42,7 +42,8 @@ DirectionalLight::DirectionalLight(
           vk::Extent3D{swapChain.extent().width, swapChain.extent().height, 1},
           findDepthAttachmentFormat(device),
           vk::ImageTiling::eOptimal,
-          vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eDepthStencilAttachment,
+          vk::ImageUsageFlagBits::eSampled |
+              vk::ImageUsageFlagBits::eDepthStencilAttachment,
           vk::MemoryPropertyFlagBits::eDeviceLocal,
           vk::SamplerAddressMode::eClampToBorder},
       mPipeline{
@@ -54,6 +55,7 @@ DirectionalLight::DirectionalLight(
           Vertex::bindingDescription(),
           Vertex::attributeDescriptions(),
           nullptr,
+          nullptr,
           {{"vertexShader", "d:/Shaders/shadowvert.spv"}, {"usage", "ShadowMap"}}}
 {
     mDepthTexture.transitionLayout(
@@ -61,7 +63,8 @@ DirectionalLight::DirectionalLight(
     std::cout << "Directional light constructed.\n";
 }
 
-void DirectionalLight::drawFrame(std::vector<Object>& objects, vk::Extent2D swapChainExtent)
+void DirectionalLight::drawFrame(
+    std::vector<Object>& objects, vk::Extent2D swapChainExtent)
 {
     vk::CommandBufferBeginInfo beginInfo{};
     beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
@@ -93,7 +96,8 @@ void DirectionalLight::drawFrame(std::vector<Object>& objects, vk::Extent2D swap
             sizeof(float) * 16,
             &worldViewProj);
 
-        mCommandBuffer.drawIndexed(static_cast<uint32_t>(object.indexCount()), 1, 0, 0, 0);
+        mCommandBuffer.drawIndexed(
+            static_cast<uint32_t>(object.indexCount()), 1, 0, 0, 0);
     }
 
     mCommandBuffer.endRenderPass();

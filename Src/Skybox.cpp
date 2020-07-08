@@ -111,6 +111,7 @@ Skybox::Skybox(
           &depthTexture,
           SkyboxVertex::bindingDescription(),
           SkyboxVertex::attributeDescriptions(),
+          nullptr,
           mDescriptorSet.layout(),
           {{"vertexShader", "d:/Shaders/skyboxvert.spv"},
            {"fragmentShader", "d:/Shaders/skyboxfrag.spv"},

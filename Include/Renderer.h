@@ -1,6 +1,7 @@
 #pragma once
 #include "../Include/Base.h"
 #include "../Include/Buffer.h"
+#include "../Include/DescriptorManager.h"
 #include "../Include/FramebufferSet.h"
 
 struct UboWorldView {
@@ -17,13 +18,24 @@ class Skybox;
 class SwapChain;
 class Texture;
 
+struct SceneUniform {
+    glm::mat4 view;
+    glm::mat4 proj;
+    glm::mat4 lightSpace;
+    glm::vec3 lightDir;
+};
+
 class Renderer {
 public:
     Renderer(const Renderer&) = delete;
 
     Renderer(Renderer&&) = delete;
 
-    Renderer(Device& device, SwapChain& swapChain, Texture& depthTexture);
+    Renderer(
+        Device& device,
+        DescriptorManager& descriptorManager,
+        SwapChain& swapChain,
+        Texture& depthTexture);
 
     ~Renderer();
 
@@ -31,7 +43,18 @@ public:
 
     Renderer& operator=(Renderer&&) = delete;
 
-    void drawFrame(std::vector<Object>& objects, Skybox& skybox, Quad& quad, DirectionalLight& light);
+    DescriptorSet& descriptorSet()
+    {
+        return mDescriptorSet;
+    }
+
+    void drawFrame(std::vector<Object>& objects);
+
+    void updateUniformBuffer(
+        const glm::mat4& viewMatrix,
+        const glm::mat4& projMatrix,
+        const glm::mat4& lightSpace,
+        const glm::vec3& lightDir);
 
 private:
     Device& mDevice;
@@ -41,4 +64,7 @@ private:
     std::vector<vk::CommandBuffer> mCommandBuffers;
     vk::Semaphore mImageAvailableSemaphore;
     vk::Semaphore mRenderFinishedSemaphore;
+    SceneUniform mUniform;
+    Buffer mUniformBuffer;
+    DescriptorSet mDescriptorSet;
 };

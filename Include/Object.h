@@ -8,7 +8,7 @@
 
 class Device;
 
-struct Uniform {
+struct ObjectUniform {
     glm::mat4 world;
     glm::mat4 view;
     glm::mat4 proj;
@@ -63,6 +63,7 @@ public:
         Device& device,
         DescriptorManager& descriptorManager,
         TextureManager& textureManager,
+        DescriptorSet& sceneDescriptorSet,
         SwapChain& swapChain,
         Texture& depthTexture,
         glm::mat4 worldMatrix,
@@ -104,7 +105,7 @@ public:
     virtual void updateUniformBuffer(
         const glm::mat4& viewMatrix,
         const glm::mat4& projMatrix,
-        const glm::mat4& lightSpace,
+        const glm::mat4& lightSpaceMatrix,
         const glm::vec3& lightDir);
 
     virtual const glm::mat4& worldMatrix() const
@@ -112,9 +113,9 @@ public:
         return mUniform.world;
     }
 
-    virtual void setWorldMatrix(const glm::mat4& worldMatrix)
+    virtual void setWorldMatrix(const glm::mat4& worldMat)
     {
-        mUniform.world = worldMatrix;
+        mWorldMat = worldMat;
     }
 
     virtual uint32_t index(int index)
@@ -137,11 +138,11 @@ private:
     std::vector<uint32_t> mIndices;
     Buffer mVertexBuffer;
     Buffer mIndexBuffer;
-    Uniform mUniform;
+    glm::mat4 mWorldMat;
+    ObjectUniform mUniform;
     Buffer mUniformBuffer;
     DescriptorSet mDescriptorSet;
     Pipeline mPipeline;
     std::vector<glm::mat4> mKeyframes;
     int mIKeyframe;
 };
-

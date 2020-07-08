@@ -32,7 +32,7 @@ public:
         glfwSetKeyCallback(mWindow, callback);
     }
 
-    Object createModelFromFile(std::string filename);
+    Object createObjectFromFile(std::string filename);
 
     GLFWwindow* window()
     {
@@ -56,32 +56,6 @@ public:
         return mTextureManager;
     }
 
-    //
-    //    SwapChain& swapChain()
-    //    {
-    //        return mSwapChain;
-    //    }
-    //
-    //    RenderPass& renderPass()
-    //    {
-    //        return mRenderPass;
-    //    }
-    //
-    //    vk::Framebuffer frameBuffer(int index) const
-    //    {
-    //        return mFrameBuffers[index];
-    //    }
-    //
-    //    size_t frameBufferCount() const
-    //    {
-    //        return mFrameBuffers.size();
-    //    }
-    //
-    //    std::vector<vk::Framebuffer>& frameBuffers()
-    //    {
-    //        return mFrameBuffers;
-    //    }
-    //
 private:
     GLFWwindow* mWindow;
     Device mDevice;
@@ -93,7 +67,7 @@ private:
 
 public:
     Camera mCamera;
-    Skybox mSkybox;
+    //Skybox mSkybox;
     DirectionalLight mLight;
-    Quad mQuad;
+    //Quad mQuad;
 };

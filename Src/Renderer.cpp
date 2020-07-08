@@ -23,14 +23,48 @@ std::vector<vk::CommandBuffer> createCommandBuffers(Device& device, SwapChain& s
     return commandBuffers;
 }
 
-Renderer::Renderer(Device& device, SwapChain& swapChain, Texture& depthTexture)
+static DescriptorSet createDescriptorSet(
+    DescriptorManager& descriptorManager, vk::Buffer uniformBuffer)
+{
+    std::vector<vk::DescriptorSetLayoutBinding> bindings = {
+        {0,
+         vk::DescriptorType::eUniformBuffer,
+         1,
+         vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment}};
+
+    DescriptorSet descriptorSet = descriptorManager.createDescriptorSet(bindings);
+
+    vk::DescriptorBufferInfo bufferInfo;
+    bufferInfo.buffer = uniformBuffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(SceneUniform);
+
+    std::vector<DescriptorWrite> writes = {
+        {0, 0, 1, &bufferInfo}}; //, {1, 0, 1, &imageInfo}};
+    descriptorSet.writeDescriptors(writes);
+    return descriptorSet;
+}
+
+Renderer::Renderer(
+    Device& device,
+    DescriptorManager& descriptorManager,
+    SwapChain& swapChain,
+    Texture& depthTexture)
     : mDevice{device},
       mSwapChain{swapChain},
       mDepthTexture{depthTexture},
       mClearFramebufferSet{mDevice, mSwapChain, &mDepthTexture, {{"usage", "Clear"}}},
       mCommandBuffers{createCommandBuffers(device, swapChain)},
       mImageAvailableSemaphore{static_cast<vk::Device>(mDevice).createSemaphore({})},
-      mRenderFinishedSemaphore{static_cast<vk::Device>(mDevice).createSemaphore({})}
+      mRenderFinishedSemaphore{static_cast<vk::Device>(mDevice).createSemaphore({})},
+      mUniform{},
+      mUniformBuffer{
+          device,
+          sizeof(SceneUniform),
+          vk::BufferUsageFlagBits::eUniformBuffer,
+          vk::MemoryPropertyFlagBits::eHostVisible |
+              vk::MemoryPropertyFlagBits::eHostCoherent},
+      mDescriptorSet{createDescriptorSet(descriptorManager, mUniformBuffer)}
 {
     std::cout << "Renderer initialized\n";
 }
@@ -105,7 +139,10 @@ static void clearColor(
         {presentToClearBarrier});
 
     commandBuffer.clearColorImage(
-        swapChain.image(index), vk::ImageLayout::eTransferDstOptimal, clearColor, imageRange);
+        swapChain.image(index),
+        vk::ImageLayout::eTransferDstOptimal,
+        clearColor,
+        imageRange);
 
     commandBuffer.pipelineBarrier(
         vk::PipelineStageFlagBits::eTransfer,
@@ -158,7 +195,10 @@ static void clearDepthStencil(
         {presentToClearBarrier});
 
     commandBuffer.clearDepthStencilImage(
-        depthTexture.image(), vk::ImageLayout::eTransferDstOptimal, clearDepthStencil, imageRange);
+        depthTexture.image(),
+        vk::ImageLayout::eTransferDstOptimal,
+        clearDepthStencil,
+        imageRange);
 
     commandBuffer.pipelineBarrier(
         vk::PipelineStageFlagBits::eTransfer,
@@ -193,6 +233,7 @@ static void clearPass(
 float t2 = 1.0f;
 
 static void drawObjectsPass(
+    DescriptorSet& descriptorSet,
     vk::CommandBuffer commandBuffer,
     int framebufferIndex,
     vk::Extent2D swapChainExtent,
@@ -200,9 +241,9 @@ static void drawObjectsPass(
 {
     for (auto& object : objects) {
         vk::RenderPassBeginInfo renderPassInfo;
-        renderPassInfo.renderPass = objects.front().pipeline().framebufferSet().renderPass();
+        renderPassInfo.renderPass = object.pipeline().framebufferSet().renderPass();
         renderPassInfo.framebuffer =
-            objects.front().pipeline().framebufferSet().frameBuffer(framebufferIndex);
+            object.pipeline().framebufferSet().frameBuffer(framebufferIndex);
         renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
         renderPassInfo.renderArea.extent = swapChainExtent;
 
@@ -215,7 +256,7 @@ static void drawObjectsPass(
             vk::PipelineBindPoint::eGraphics,
             object.pipeline().layout(),
             0,
-            {object.descriptorSet(), object.pipeline().descriptorSet()},
+            {descriptorSet, object.pipeline().descriptorSet(), object.descriptorSet()},
             nullptr);
 
         commandBuffer.drawIndexed(static_cast<uint32_t>(object.indexCount()), 1, 0, 0, 0);
@@ -232,7 +273,8 @@ static void drawSkyboxPass(
 {
     vk::RenderPassBeginInfo renderPassInfo;
     renderPassInfo.renderPass = skybox.pipeline().framebufferSet().renderPass();
-    renderPassInfo.framebuffer = skybox.pipeline().framebufferSet().frameBuffer(framebufferIndex);
+    renderPassInfo.framebuffer =
+        skybox.pipeline().framebufferSet().frameBuffer(framebufferIndex);
     renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
     renderPassInfo.renderArea.extent = swapChainExtent;
 
@@ -255,18 +297,21 @@ static void drawSkyboxPass(
         {skybox.pipeline().descriptorSet()},
         nullptr);
 
-    //commandBuffer.draw(36, 1, 0, 0);
     commandBuffer.drawIndexed(36, 1, 0, 0, 0);
 
     commandBuffer.endRenderPass();
 }
 
 static void drawQuadPass(
-    vk::CommandBuffer commandBuffer, int framebufferIndex, vk::Extent2D swapChainExtent, Quad& quad)
+    vk::CommandBuffer commandBuffer,
+    int framebufferIndex,
+    vk::Extent2D swapChainExtent,
+    Quad& quad)
 {
     vk::RenderPassBeginInfo renderPassInfo;
     renderPassInfo.renderPass = quad.pipeline().framebufferSet().renderPass();
-    renderPassInfo.framebuffer = quad.pipeline().framebufferSet().frameBuffer(framebufferIndex);
+    renderPassInfo.framebuffer =
+        quad.pipeline().framebufferSet().frameBuffer(framebufferIndex);
     renderPassInfo.renderArea.offset = vk::Offset2D(0, 0);
     renderPassInfo.renderArea.extent = swapChainExtent;
 
@@ -293,8 +338,7 @@ static void drawQuadPass(
     commandBuffer.endRenderPass();
 }
 
-void Renderer::drawFrame(
-    std::vector<Object>& objects, Skybox& skybox, Quad& quad, DirectionalLight& light)
+void Renderer::drawFrame(std::vector<Object>& objects)
 {
     uint32_t imageIndex = 0;
     static_cast<vk::Device>(mDevice).acquireNextImageKHR(
@@ -316,19 +360,14 @@ void Renderer::drawFrame(
         mClearFramebufferSet.frameBuffer(imageIndex),
         mSwapChain.extent());
 
-    drawObjectsPass(commandBuffer, imageIndex, mSwapChain.extent(), objects);
-    //drawSkyboxPass(commandBuffer, imageIndex, mSwapChain.extent(), skybox);
-    //drawQuadPass(commandBuffer, imageIndex, mSwapChain.extent(), quad);
-
-    light.depthTexture().transitionLayout(
-        vk::ImageLayout::eShaderReadOnlyOptimal,
-        vk::ImageLayout::eDepthStencilAttachmentOptimal,
-        commandBuffer);
+    drawObjectsPass(
+        mDescriptorSet, commandBuffer, imageIndex, mSwapChain.extent(), objects);
 
     commandBuffer.end();
 
     vk::SubmitInfo submitInfo;
-    vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+    vk::PipelineStageFlags waitStages[] = {
+        vk::PipelineStageFlagBits::eColorAttachmentOutput};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = &mImageAvailableSemaphore;
     submitInfo.pWaitDstStageMask = waitStages;
@@ -353,3 +392,23 @@ void Renderer::drawFrame(
     mDevice.presentQueue().presentKHR(presentInfo);
     static_cast<vk::Device>(mDevice).waitIdle();
 }
+
+void Renderer::updateUniformBuffer(
+    const glm::mat4& viewMatrix,
+    const glm::mat4& projMatrix,
+    const glm::mat4& lightSpace,
+    const glm::vec3& lightDir)
+{
+    mUniform.view = viewMatrix;
+    mUniform.proj = projMatrix;
+    mUniform.lightSpace = lightSpace;
+    mUniform.lightDir = lightDir;
+
+    void* data = mUniformBuffer.mapMemory();
+    memcpy(data, &mUniform, sizeof(SceneUniform));
+    mUniformBuffer.unmapMemory();
+}
+
+
+
+
