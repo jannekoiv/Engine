@@ -5,10 +5,6 @@
 #include "device.h"
 #include "swap_chain.h"
 #include "texture_manager.h"
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <vulkan/vulkan.hpp>
 
 Pipeline::Pipeline(Pipeline&& rhs)
     : _device{rhs._device},

@@ -6,9 +6,8 @@
 #include "swap_chain.h"
 #include "texture.h"
 #include "texture_manager.h"
-#include <fstream>
-#include <iostream>
 #include <stb/stb_image.h>
+
 
 static glm::mat4 ortho_proj_matrix()
 {

@@ -1,9 +1,6 @@
 
 #include "descriptor_manager.h"
 #include "device.h"
-#include <iostream>
-#include <vector>
-#include <vulkan/vulkan.hpp>
 
 DescriptorSet::DescriptorSet(DescriptorSet&& rhs)
     : _device(rhs._device), _bindings{rhs._bindings}, _descriptor_set{rhs._descriptor_set}, _layout{rhs._layout}

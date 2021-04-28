@@ -1,8 +1,7 @@
 #include "skybox.h"
 #include "device.h"
 #include "texture_manager.h"
-#include <fstream>
-#include <iostream>
+
 
 static Buffer create_uniform_buffer(Device& device)
 {

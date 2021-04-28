@@ -3,8 +3,6 @@
 #include "base.h"
 #include "buffer.h"
 #include "device.h"
-#include <iostream>
-#include <vulkan/vulkan.hpp>
 
 Texture::Texture(Texture&& rhs)
     : _device{rhs._device},

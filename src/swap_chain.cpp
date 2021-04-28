@@ -1,11 +1,7 @@
 #include "swap_chain.h"
 #include "device.h"
-#include <algorithm>
-#include <iostream>
 #include <limits>
 #include <stddef.h>
-#include <vector>
-#include <vulkan/vulkan.hpp>
 
 vk::SurfaceFormatKHR choose_swap_surface_format(const std::vector<vk::SurfaceFormatKHR>& available_formats)
 {

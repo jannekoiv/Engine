@@ -3,12 +3,9 @@
 #include "device.h"
 #include "directional_light.h"
 #include "framebuffer_set.h"
-#include "quad.h"
 #include "skybox.h"
 #include "swap_chain.h"
 #include "texture.h"
-#include <fstream>
-#include <iostream>
 
 std::vector<vk::CommandBuffer> create_command_buffers(Device& device, SwapChain& swap_chain)
 {
@@ -302,43 +299,43 @@ static void draw_skybox_pass(
     command_buffer.endRenderPass();
 }
 
-static void draw_quad_pass(
-    vk::CommandBuffer command_buffer,
-    int framebuffer_index,
-    vk::Extent2D swap_chain_extent,
-    Quad& quad)
-{
-    vk::RenderPassBeginInfo render_pass_info;
-    render_pass_info.renderPass = quad.pipeline().framebuffer_set().render_pass();
-    render_pass_info.framebuffer =
-        quad.pipeline().framebuffer_set().frame_buffer(framebuffer_index);
-    render_pass_info.renderArea.offset = vk::Offset2D(0, 0);
-    render_pass_info.renderArea.extent = swap_chain_extent;
+// static void draw_quad_pass(
+//     vk::CommandBuffer command_buffer,
+//     int framebuffer_index,
+//     vk::Extent2D swap_chain_extent,
+//     Quad& quad)
+// {
+//     vk::RenderPassBeginInfo render_pass_info;
+//     render_pass_info.renderPass = quad.pipeline().framebuffer_set().render_pass();
+//     render_pass_info.framebuffer =
+//         quad.pipeline().framebuffer_set().frame_buffer(framebuffer_index);
+//     render_pass_info.renderArea.offset = vk::Offset2D(0, 0);
+//     render_pass_info.renderArea.extent = swap_chain_extent;
 
-    command_buffer.beginRenderPass(render_pass_info, vk::SubpassContents::eInline);
-    command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, quad.pipeline());
-    command_buffer.bindVertexBuffers(0, {quad.vertex_buffer()}, {0});
+//     command_buffer.beginRenderPass(render_pass_info, vk::SubpassContents::eInline);
+//     command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, quad.pipeline());
+//     command_buffer.bindVertexBuffers(0, {quad.vertex_buffer()}, {0});
 
-    command_buffer.bindDescriptorSets(
-        vk::PipelineBindPoint::eGraphics,
-        quad.pipeline().layout(),
-        0,
-        {quad.descriptor_set()},
-        nullptr);
+//     command_buffer.bindDescriptorSets(
+//         vk::PipelineBindPoint::eGraphics,
+//         quad.pipeline().layout(),
+//         0,
+//         {quad.descriptor_set()},
+//         nullptr);
 
-    command_buffer.bindDescriptorSets(
-        vk::PipelineBindPoint::eGraphics,
-        quad.pipeline().layout(),
-        1,
-        {quad.pipeline().descriptor_set()},
-        nullptr);
+//     command_buffer.bindDescriptorSets(
+//         vk::PipelineBindPoint::eGraphics,
+//         quad.pipeline().layout(),
+//         1,
+//         {quad.pipeline().descriptor_set()},
+//         nullptr);
 
-    command_buffer.draw(6, 1, 0, 0);
+//     command_buffer.draw(6, 1, 0, 0);
 
-    command_buffer.endRenderPass();
-}
+//     command_buffer.endRenderPass();
+// }
 
-void Renderer::draw_frame(std::vector<Object>& objects, Quad& quad)
+void Renderer::draw_frame(std::vector<Object>& objects)
 {
     uint32_t image_index = 0;
     static_cast<vk::Device>(_device).acquireNextImageKHR(
@@ -364,7 +361,7 @@ void Renderer::draw_frame(std::vector<Object>& objects, Quad& quad)
         _descriptor_set, command_buffer, image_index, _swap_chain.extent(), objects);
 
     
-    draw_quad_pass(command_buffer, image_index, _swap_chain.extent(), quad);
+    // draw_quad_pass(command_buffer, image_index, _swap_chain.extent(), quad);
 
     command_buffer.end();
 

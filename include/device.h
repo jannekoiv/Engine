@@ -77,6 +77,14 @@ public:
     vk::Format find_supported_format(
         const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
 
+    vk::Instance instance() {
+	return _instance;
+    }
+
+    vk::Device device() {
+	return _device;
+    }
+
 private:
     vk::Instance _instance;
     VkDebugReportCallbackEXT _debug_callback;

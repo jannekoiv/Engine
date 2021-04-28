@@ -1,8 +1,5 @@
 #include "descriptor_manager.h"
 #include "device.h"
-#include <iostream>
-#include <vector>
-#include <vulkan/vulkan.hpp>
 
 vk::DescriptorSetLayout create_descriptor_set_layout(
     vk::Device device, std::vector<vk::DescriptorSetLayoutBinding> bindings)

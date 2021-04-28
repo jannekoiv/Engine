@@ -2,8 +2,6 @@
 #include "base.h"
 #include "device.h"
 #include "texture.h"
-#include <iostream>
-#include <vulkan/vulkan.hpp>
 
 Buffer::Buffer(Buffer&& buffer)
     : _device(buffer._device), _size(buffer._size), _buffer(buffer._buffer), _memory(buffer._memory)

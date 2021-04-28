@@ -13,7 +13,6 @@ class DirectionalLight;
 class FramebufferSet;
 class Mesh;
 class Object;
-class Quad;
 class Skybox;
 class SwapChain;
 class Texture;
@@ -48,7 +47,7 @@ public:
         return _descriptor_set;
     }
 
-    void draw_frame(std::vector<Object>& objects, Quad& quad);
+    void draw_frame(std::vector<Object>& objects);
 
     void update_uniform_buffer(
         const glm::mat4& view_matrix,

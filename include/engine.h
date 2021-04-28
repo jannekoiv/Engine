@@ -32,14 +32,14 @@ public:
         glfwSetKeyCallback(_window, callback);
     }
 
-    Object create_object_from_file(std::string filename);
+    // Object create_object_from_file(std::string filename);
 
     GLFWwindow* window()
     {
         return _window;
     }
 
-    void draw_frame(std::vector<Object>& objects);
+    // void draw_frame(std::vector<Object>& objects);
 
     Camera& camera()
     {
@@ -51,23 +51,33 @@ public:
         return _device;
     }
 
-    TextureManager& texture_manager()
+    SwapChain& swap_chain()
     {
-        return _texture_manager;
+        return _swap_chain;
     }
+
+    Texture& depth_texture()
+    {
+        return _depth_texture;
+    }
+
+    // TextureManager& texture_manager()
+    // {
+    //     return _texture_manager;
+    // }
 
 private:
     GLFWwindow* _window;
     Device _device;
     SwapChain _swap_chain;
     Texture _depth_texture;
-    DescriptorManager _descriptor_manager;
-    TextureManager _texture_manager;
-    Renderer _renderer;
+    // DescriptorManager _descriptor_manager;
+    // TextureManager _texture_manager;
+    // Renderer _renderer;
 
 public:
     Camera _camera;
     //Skybox mSkybox;
     // DirectionalLight mLight;
-    Quad _quad;
+    // Quad _quad;
 };

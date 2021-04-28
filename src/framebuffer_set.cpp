@@ -4,8 +4,6 @@
 #include "device.h"
 #include "swap_chain.h"
 #include "texture.h"
-#include <iostream>
-#include <vulkan/vulkan.hpp>
 
 FramebufferSet::FramebufferSet(FramebufferSet&& rhs)
     : _device{rhs._device}, _render_pass{rhs._render_pass}, _frame_buffers{rhs._frame_buffers}
@@ -29,7 +27,6 @@ vk::RenderPass create_render_pass(
         std::cout << "usage found\n";
     } else {
         std::cout << "usage not found\n";
-        abort();
     }
 
     if (json["usage"] != "ShadowMap") {
@@ -180,7 +177,7 @@ FramebufferSet::FramebufferSet(
     const nlohmann::json& json)
     : _device{device},
       _render_pass{create_render_pass(_device, swap_chain.format(), json)},
-      _frame_buffers{create_frame_buffers(_device, swap_chain, depth_texture, _render_pass, json)}
+      _frame_buffers{create_frame_buffers(device, swap_chain, depth_texture, _render_pass, json)}
 {
 }
 

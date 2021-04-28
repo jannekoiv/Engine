@@ -3,6 +3,7 @@
 
 #include "descriptor_set.h"
 #include "framebuffer_set.h"
+#include <nlohmann/json.hpp>
 
 class DescriptorManager;
 class TextureManager;

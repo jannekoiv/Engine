@@ -1,7 +1,5 @@
 #include "object.h"
 #include "device.h"
-#include <fstream>
-#include <iostream>
 
 static Buffer create_vertex_buffer(Device& device, std::vector<Vertex>& vertices)
 {

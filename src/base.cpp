@@ -1,6 +1,5 @@
 
 #include "base.h"
-#include <fstream>
 
 int32_t read_int(std::ifstream& file)
 {
