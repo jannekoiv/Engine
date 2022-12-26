@@ -1,5 +1,5 @@
 
-#include "base.h"
+#include "includes.h"
 
 int32_t read_int(std::ifstream& file)
 {
@@ -55,7 +55,8 @@ std::vector<char> read_file(const std::string& filename)
 
 bool has_stencil_component(vk::Format format)
 {
-    return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
+    return format == vk::Format::eD32SfloatS8Uint ||
+        format == vk::Format::eD24UnormS8Uint;
 }
 
 //vk::CommandBuffer beginSingleTimeCommands(vk::Device device, vk::CommandPool commandPool)

@@ -1,17 +1,8 @@
 #pragma once
-#include "base.h"
-#include "buffer.h"
+
 #include "camera.h"
-#include "descriptor_manager.h"
-#include "device.h"
-#include "directional_light.h"
-#include "object.h"
-#include "quad.h"
-#include "renderer.h"
-#include "skybox.h"
-#include "swap_chain.h"
-#include "texture.h"
-#include "texture_manager.h"
+#include "context.h"
+#include "ext_includes.h"
 
 class Engine {
 public:
@@ -19,7 +10,7 @@ public:
 
     Engine(Engine&&) = delete;
 
-    Engine(const int width, const int height, const bool enable_validation_layers);
+    Engine(const int width, const int height);
 
     ~Engine();
 
@@ -27,57 +18,19 @@ public:
 
     Engine& operator=(Engine&&) = delete;
 
-    void set_key_callback(GLFWkeyfun callback)
-    {
-        glfwSetKeyCallback(_window, callback);
-    }
-
-    // Object create_object_from_file(std::string filename);
-
-    GLFWwindow* window()
-    {
-        return _window;
-    }
-
-    // void draw_frame(std::vector<Object>& objects);
-
     Camera& camera()
     {
         return _camera;
     }
 
-    Device& device()
+    Context& context()
     {
-        return _device;
+        return _context;
     }
-
-    SwapChain& swap_chain()
-    {
-        return _swap_chain;
-    }
-
-    Texture& depth_texture()
-    {
-        return _depth_texture;
-    }
-
-    // TextureManager& texture_manager()
-    // {
-    //     return _texture_manager;
-    // }
 
 private:
-    GLFWwindow* _window;
-    Device _device;
-    SwapChain _swap_chain;
-    Texture _depth_texture;
-    // DescriptorManager _descriptor_manager;
-    // TextureManager _texture_manager;
-    // Renderer _renderer;
+    Context _context;
 
 public:
     Camera _camera;
-    //Skybox mSkybox;
-    // DirectionalLight mLight;
-    // Quad _quad;
 };

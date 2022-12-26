@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base.h"
+#include "ext_includes.h"
 
 class Device;
 class Texture;
@@ -33,15 +33,23 @@ public:
         return _size;
     }
 
-    const vk::DeviceMemory& memory() const
+    vk::DeviceMemory& memory()
     {
         return _memory;
     }
 
-    void copy(Buffer& dst_buffer, vk::DeviceSize size);
-    void copy(Buffer& dst_buffer);
-    void copy_to_texture(Texture& dst_texture, int layer, vk::Offset3D offset, vk::Extent3D extent);
-    void copy_to_texture(Texture& dst_texture, int layer);
+    // void copy(Buffer& dst_buffer, vk::DeviceSize size);
+    // void copy(Buffer& dst_buffer);
+    void copy(vk::CommandPool command_pool, Buffer& dst_buffer, vk::DeviceSize size);
+    void copy(vk::CommandPool command_pool, Buffer& dst_buffer);
+
+    void copy_to_texture(
+        vk::CommandPool command_pool,
+        Texture& dst_texture,
+        int layer,
+        vk::Offset3D offset,
+        vk::Extent3D extent);
+    void copy_to_texture(vk::CommandPool command_pool, Texture& dst_texture, int layer);
 
     void* map_memory(vk::DeviceSize offset, vk::DeviceSize size);
     void* map_memory();

@@ -1,18 +1,6 @@
 #pragma once
 
-//#define VULKAN_HPP_NO_SMART_HANDLE
-
-#include <vulkan/vulkan.hpp>
-//#define GLM_FORCE_ALIGNED
-//#define GLM_FORCE_CTOR_INIT
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/matrix_access.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <GLFW/glfw3.h>
-#include <iostream>
-#include <fstream>
+#include "ext_includes.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -32,11 +20,11 @@ bool has_stencil_component(vk::Format format);
 
 //vk::CommandBuffer beginSingleTimeCommands(vk::Device device, vk::CommandPool commandPool);
 
-#define single_time_command(OBJ, FN, ...)                                                            \
-    [](auto&& obj, auto&&... args) -> decltype(auto) {                                             \
-        vk::CommandBuffer command_buffer = obj.beginSingleTimeCommand();                            \
-        command_buffer.FN(args...);                                                                 \
-        obj.end_single_time_command(command_buffer);                                                   \
+#define single_time_command(OBJ, FN, ...)                                                \
+    [](auto&& obj, auto&&... args) -> decltype(auto) {                                   \
+        vk::CommandBuffer command_buffer = obj.beginSingleTimeCommand();                 \
+        command_buffer.FN(args...);                                                      \
+        obj.end_single_time_command(command_buffer);                                     \
     }(OBJ, __VA_ARGS__);
 
 //void endSingleTimeCommands(

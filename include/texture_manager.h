@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base.h"
+#include "ext_includes.h"
 #include "texture.h"
 
 class Device;

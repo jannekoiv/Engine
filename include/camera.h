@@ -1,33 +1,20 @@
 #pragma once
 
-#include "base.h"
+#include "ext_includes.h"
 
 class Camera {
 public:
-    Camera();
+    Camera(
+        const float fov,
+        const float aspect_ratio,
+        const float near_plane,
+        const float far_plane);
 
-    void init_projection(
-        const float fov, const float aspect_ratio, const float near_plane, const float far_plane);
+    const glm::mat4& world_matrix();
 
-    const glm::mat4 world_matrix()
-    {
-        return _world_matrix;
-    }
+    glm::mat4 view_matrix();
 
-    void set_world_matrix(glm::mat4 world_matrix)
-    {
-        _world_matrix = world_matrix;
-    }
-
-    const glm::mat4 view_matrix()
-    {
-        return glm::inverse(_world_matrix);
-    }
-
-    const glm::mat4& proj_matrix() const
-    {
-        return _proj_matrix;
-    }
+    const glm::mat4& proj_matrix();
 
     void move_horizontal(float distance);
     void move_vertical(float distance);
@@ -36,12 +23,13 @@ public:
     void yaw(float angle);
     void pitch(float angle);
 
+private:
     void update();
 
-private:
     glm::vec3 _position;
     float _yaw;
     float _pitch;
     glm::mat4 _world_matrix;
     glm::mat4 _proj_matrix;
+    bool _world_matrix_outdated;
 };

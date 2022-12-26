@@ -1,148 +1,82 @@
 #pragma once
 
-#include "base.h"
 #include "buffer.h"
-#include "descriptor_manager.h"
-#include "pipeline.h"
+#include "ext_includes.h"
 #include "texture.h"
 
 class Device;
+class Context;
+class SwapChain;
 
-struct ObjectUniform {
-    glm::mat4 world;
-    glm::mat4 view;
-    glm::mat4 proj;
-    glm::mat4 light_space;
-    glm::vec3 light_dir;
-};
-
-struct Vertex {
-    static vk::VertexInputBindingDescription bindingDescription()
-    {
-        vk::VertexInputBindingDescription desc = {};
-        desc.binding = 0;
-        desc.stride = sizeof(Vertex);
-        desc.inputRate = vk::VertexInputRate::eVertex;
-        return desc;
-    }
-
-    static std::vector<vk::VertexInputAttributeDescription> attributeDescriptions()
-    {
-        std::vector<vk::VertexInputAttributeDescription> descs(3);
-
-        descs[0].binding = 0;
-        descs[0].location = 0;
-        descs[0].format = vk::Format::eR32G32B32A32Sfloat;
-        descs[0].offset = offsetof(Vertex, position);
-
-        descs[1].binding = 0;
-        descs[1].location = 1;
-        descs[1].format = vk::Format::eR32G32B32A32Sfloat;
-        descs[1].offset = offsetof(Vertex, normal);
-
-        descs[2].binding = 0;
-        descs[2].location = 2;
-        descs[2].format = vk::Format::eR32G32Sfloat;
-        descs[2].offset = offsetof(Vertex, tex_coord);
-
-        return descs;
-    }
+struct MeshVertex {
+    static vk::VertexInputBindingDescription binding_description();
+    static std::vector<vk::VertexInputAttributeDescription> attribute_description();
 
     glm::vec3 position;
+    uint32_t color;
     glm::vec3 normal;
-    glm::vec2 tex_coord;
+    glm::vec2 texcoord;
+};
+
+struct MeshGeometry {
+    std::vector<MeshVertex> vertices{};
+    std::vector<uint32_t> indices{};
+};
+
+struct SceneUniform {
+    glm::mat4 view;
+    glm::mat4 proj;
+    glm::vec3 light_dir;
 };
 
 class Object {
 public:
     Object(const Object&) = delete;
-
-    Object(Object&&) = default;
-
-    Object(
-        Device& device,
-        DescriptorManager& descriptor_manager,
-        TextureManager& texture_manager,
-        DescriptorSet& scene_descriptor_set,
-        SwapChain& swap_chain,
-        Texture& depth_texture,
-        glm::mat4 world_matrix,
-        std::vector<Vertex> vertices,
-        std::vector<uint32_t> indices,
-        const nlohmann::json& json,
-        Texture* shadow_map,
-        std::vector<glm::mat4> keyframes);
+    Object(Object&& rhs);
+    ~Object();
 
     Object& operator=(const Object&) = delete;
-
     Object& operator=(Object&&) = delete;
 
-    virtual Buffer& vertex_buffer()
-    {
-        return _vertex_buffer;
-    }
+    Object(Context& context, const MeshGeometry& geometry);
 
-    virtual Buffer& index_buffer()
-    {
-        return _index_buffer;
-    }
+    void draw(Context& context, SceneUniform& uniform);
 
-    virtual Pipeline& pipeline()
-    {
-        return _pipeline;
-    }
-
-    virtual vk::DescriptorSet descriptor_set()
-    {
-        return _descriptor_set;
-    }
-
-    virtual size_t index_count()
-    {
-        return _indices.size();
-    }
-
-    virtual void update_uniform_buffer(
-        const glm::mat4& view_matrix,
-        const glm::mat4& proj_matrix,
-        const glm::mat4& light_space_matrix,
-        const glm::vec3& light_dir);
-
-    virtual const glm::mat4& world_matrix() const
-    {
-        return _uniform.world;
-    }
-
-    virtual void set_world_matrix(const glm::mat4& world_matrix)
+    void set_world_matrix(const glm::mat4& world_matrix)
     {
         _world_matrix = world_matrix;
     }
 
-    virtual uint32_t index(int index)
+    const glm::mat4& world_matrix() const
     {
-        return _indices[index];
-    }
-
-    virtual Vertex vertex(size_t index)
-    {
-        return _vertices[index];
-    }
-
-    virtual void setKeyframe(int keyframe)
-    {
-        _keyframe = keyframe;
+        return _world_matrix;
     }
 
 private:
-    std::vector<Vertex> _vertices;
-    std::vector<uint32_t> _indices;
+    Context& _context;
+    SwapChain& _swap_chain;
+
+    vk::RenderPass _render_pass;
+    std::vector<vk::Framebuffer> _framebuffers;
+
+    std::vector<vk::CommandBuffer> _command_buffers;
+
     Buffer _vertex_buffer;
     Buffer _index_buffer;
-    glm::mat4 _world_matrix;
-    ObjectUniform _uniform;
     Buffer _uniform_buffer;
-    DescriptorSet _descriptor_set;
-    Pipeline _pipeline;
-    std::vector<glm::mat4> _keyframes;
-    int _keyframe;
+
+    Texture _texture;
+
+    vk::DescriptorPool _descriptor_pool;
+    vk::DescriptorSetLayout _descriptor_set_layout;
+    vk::DescriptorSet _descriptor_set;
+
+    vk::PipelineLayout _pipeline_layout;
+    vk::Pipeline _pipeline;
+
+    glm::mat4 _world_matrix;
 };
+
+MeshGeometry create_geometry_from_file(std::string filename);
+Object create_object_from_file(Context& context, std::string filename);
+

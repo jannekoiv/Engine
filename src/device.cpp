@@ -1,8 +1,4 @@
 #include "device.h"
-#include <GLFW/glfw3.h>
-#include <iostream>
-#include <set>
-#include <vulkan/vulkan.hpp>
 
 SwapChainSupportDetails::SwapChainSupportDetails(
     vk::SurfaceKHR surface, vk::PhysicalDevice device)
@@ -124,8 +120,7 @@ VkDebugReportCallbackEXT create_debug_callback(
     info.pfnCallback = debug_callback;
 
     VkDebugReportCallbackEXT callback = nullptr;
-    if (create_debug_report_callback_ext(instance, &info, &callback) !=
-        VK_SUCCESS) {
+    if (create_debug_report_callback_ext(instance, &info, &callback) != VK_SUCCESS) {
         throw std::runtime_error("Failed to setup debug callback!");
     }
     return callback;
@@ -223,6 +218,12 @@ bool is_device_suitable(
     return is_suitable;
 }
 
+std::string device_name(vk::PhysicalDevice device)
+{
+    auto properties = device.getProperties();
+    return properties.deviceName;
+}
+
 vk::PhysicalDevice pick_physical_device(
     vk::Instance& instance,
     vk::SurfaceKHR& surface,
@@ -244,9 +245,10 @@ vk::PhysicalDevice pick_physical_device(
 
     if (!physical_device) {
         throw std::runtime_error("Failed to find suitable GPU!");
+    } else {
+        std::cout << "Device name: " << device_name(physical_device) << "\n";
+        return physical_device;
     }
-
-    return physical_device;
 }
 
 vk::Device create_logical_device(
@@ -287,24 +289,24 @@ vk::Device create_logical_device(
     return device;
 }
 
-vk::CommandPool create_command_pool(
-    QueueFamilyIndices queue_family_indices, vk::Device device)
-{
-    vk::CommandPoolCreateInfo info(
-        vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-        queue_family_indices.graphics);
-    vk::CommandPool command_pool = device.createCommandPool(info);
-    return command_pool;
-}
-
 const std::vector<const char*> validation_layers()
 {
-    return {"VK_LAYER_LUNARG_standard_validation"};
+    return {"VK_LAYER_KHRONOS_validation"};
+    // return {"VK_LAYER_LUNARG_standard_validation"};
 }
 
 const std::vector<const char*> device_extensions()
 {
     return {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+}
+
+vk::CommandPool create_command_pool(
+    vk::Device device, QueueFamilyIndices queueFamilyIndices)
+{
+    vk::CommandPoolCreateInfo command_pool_info(
+        vk::CommandPoolCreateFlagBits::eResetCommandBuffer, queueFamilyIndices.graphics);
+    vk::CommandPool command_pool = device.createCommandPool(command_pool_info);
+    return command_pool;
 }
 
 Device::Device(GLFWwindow* window, bool enable_validation_layers)
@@ -320,14 +322,12 @@ Device::Device(GLFWwindow* window, bool enable_validation_layers)
           validation_layers(),
           device_extensions())),
       _graphics_queue(_device.getQueue(_queue_family_indices.graphics, 0)),
-      _present_queue(_device.getQueue(_queue_family_indices.present, 0)),
-      _command_pool(create_command_pool(_queue_family_indices, _device))
+      _present_queue(_device.getQueue(_queue_family_indices.present, 0))
 {
 }
 
 Device::~Device()
 {
-    _device.destroyCommandPool(_command_pool);
     _device.destroy();
     _instance.destroySurfaceKHR(_surface);
     destroy_debug_callback(_instance, _debug_callback);
@@ -347,26 +347,6 @@ uint32_t Device::find_memory_type(
         }
     }
     throw std::runtime_error("Failed to find suitable memory type!");
-}
-
-vk::CommandBuffer Device::create_and_begin_command_buffer()
-{
-    vk::CommandBufferAllocateInfo alloc_info(
-        _command_pool, vk::CommandBufferLevel::ePrimary, 1);
-    vk::CommandBuffer command_buffer = _device.allocateCommandBuffers(alloc_info).front();
-    vk::CommandBufferBeginInfo begin_info(
-        vk::CommandBufferUsageFlagBits::eOneTimeSubmit, nullptr);
-    command_buffer.begin(begin_info);
-    return command_buffer;
-}
-
-void Device::flush_and_free_command_buffer(vk::CommandBuffer command_buffer)
-{
-    command_buffer.end();
-    vk::SubmitInfo submitInfo(0, nullptr, nullptr, 1, &command_buffer, 0, nullptr);
-    _graphics_queue.submit(submitInfo, nullptr);
-    _graphics_queue.waitIdle();
-    static_cast<vk::Device>(_device).freeCommandBuffers(_command_pool, command_buffer);
 }
 
 vk::Format Device::find_supported_format(
@@ -389,7 +369,7 @@ vk::Format Device::find_supported_format(
     throw std::runtime_error("Failed to find supported format.");
 }
 
-vk::Format find_depth_attachment_optimal(Device& device)
+vk::Format find_optimal_depth_attachment_format(Device& device)
 {
     return device.find_supported_format(
         {vk::Format::eD32Sfloat,
@@ -397,4 +377,47 @@ vk::Format find_depth_attachment_optimal(Device& device)
          vk::Format::eD24UnormS8Uint},
         vk::ImageTiling::eOptimal,
         vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+}
+
+// vk::CommandBuffer Device::create_and_begin_command_buffer()
+// {
+//     vk::CommandBufferAllocateInfo alloc_info(
+//         _command_pool, vk::CommandBufferLevel::ePrimary, 1);
+//     vk::CommandBuffer command_buffer =
+//         static_cast<vk::Device>(_device).allocateCommandBuffers(alloc_info).front();
+//     vk::CommandBufferBeginInfo begin_info(
+//         vk::CommandBufferUsageFlagBits::eOneTimeSubmit, nullptr);
+//     command_buffer.begin(begin_info);
+//     return command_buffer;
+// }
+
+vk::CommandBuffer Device::create_and_begin_command_buffer(vk::CommandPool command_pool)
+{
+    vk::CommandBufferAllocateInfo alloc_info(
+        command_pool, vk::CommandBufferLevel::ePrimary, 1);
+    vk::CommandBuffer command_buffer =
+        static_cast<vk::Device>(_device).allocateCommandBuffers(alloc_info).front();
+    vk::CommandBufferBeginInfo begin_info(
+        vk::CommandBufferUsageFlagBits::eOneTimeSubmit, nullptr);
+    command_buffer.begin(begin_info);
+    return command_buffer;
+}
+
+// void Device::flush_and_free_command_buffer(vk::CommandBuffer command_buffer)
+// {
+//     command_buffer.end();
+//     vk::SubmitInfo submitInfo(0, nullptr, nullptr, 1, &command_buffer, 0, nullptr);
+//     _graphics_queue.submit(submitInfo, nullptr);
+//     _graphics_queue.waitIdle();
+//     static_cast<vk::Device>(_device).freeCommandBuffers(_command_pool, command_buffer);
+// }
+
+void Device::flush_and_free_command_buffer(
+    vk::CommandPool command_pool, vk::CommandBuffer command_buffer)
+{
+    command_buffer.end();
+    vk::SubmitInfo submitInfo(0, nullptr, nullptr, 1, &command_buffer, 0, nullptr);
+    _graphics_queue.submit(submitInfo, nullptr);
+    _graphics_queue.waitIdle();
+    static_cast<vk::Device>(_device).freeCommandBuffers(command_pool, command_buffer);
 }

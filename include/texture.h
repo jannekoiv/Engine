@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base.h"
+#include "ext_includes.h"
 
 class Device;
 
@@ -73,6 +73,7 @@ public:
     }
 
     void transition_layout(
+        vk::CommandPool command_pool,
         vk::ImageLayout old_layout,
         vk::ImageLayout new_layout,
         vk::CommandBuffer external_command_buffer = nullptr);

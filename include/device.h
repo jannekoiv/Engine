@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base.h"
+#include "ext_includes.h"
 
 struct QueueFamilyIndices {
     int graphics = -1;
@@ -63,27 +63,27 @@ public:
         return _present_queue;
     }
 
-    vk::CommandPool command_pool() const
-    {
-        return _command_pool;
-    }
-
-    uint32_t find_memory_type(uint32_t type_filter, vk::MemoryPropertyFlags properties) const;
-
-    vk::CommandBuffer create_and_begin_command_buffer();
-
-    void flush_and_free_command_buffer(vk::CommandBuffer command_buffer);
+    uint32_t find_memory_type(
+        uint32_t type_filter, vk::MemoryPropertyFlags properties) const;
 
     vk::Format find_supported_format(
-        const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
+        const std::vector<vk::Format>& candidates,
+        vk::ImageTiling tiling,
+        vk::FormatFeatureFlags features);
 
-    vk::Instance instance() {
-	return _instance;
+    vk::Instance instance()
+    {
+        return _instance;
     }
 
-    vk::Device device() {
-	return _device;
+    vk::Device device()
+    {
+        return _device;
     }
+
+    vk::CommandBuffer create_and_begin_command_buffer(vk::CommandPool command_pool);
+    void flush_and_free_command_buffer(
+        vk::CommandPool command_pool, vk::CommandBuffer command_buffer);
 
 private:
     vk::Instance _instance;
@@ -94,7 +94,6 @@ private:
     vk::Device _device;
     vk::Queue _graphics_queue;
     vk::Queue _present_queue;
-    vk::CommandPool _command_pool;
 };
 
-vk::Format find_depth_attachment_optimal(Device& device);
+vk::Format find_optimal_depth_attachment_format(Device& device);

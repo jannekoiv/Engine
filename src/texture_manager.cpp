@@ -1,9 +1,6 @@
 
-
 #define STB_IMAGE_IMPLEMENTATION
-
-#include "texture_manager.h"
-#include "buffer.h"
+#include "includes.h"
 #include <stb/stb_image.h>
 
 TextureContainer::TextureContainer(std::string filename, Texture texture)
@@ -33,7 +30,8 @@ Texture& TextureManager::create_texture_from_file(
     int height = 0;
     int channel_count = 0;
 
-    stbi_uc* pixels = stbi_load(filename.data(), &width, &height, &channel_count, STBI_rgb_alpha);
+    stbi_uc* pixels =
+        stbi_load(filename.data(), &width, &height, &channel_count, STBI_rgb_alpha);
     if (!pixels) {
         throw std::runtime_error("Failed to load texture image!");
     }
@@ -44,7 +42,8 @@ Texture& TextureManager::create_texture_from_file(
         _device,
         image_size,
         vk::BufferUsageFlagBits::eTransferSrc,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        vk::MemoryPropertyFlagBits::eHostVisible |
+            vk::MemoryPropertyFlagBits::eHostCoherent);
 
     void* data = staging_buffer.map_memory();
     memcpy(data, pixels, image_size);
@@ -63,15 +62,17 @@ Texture& TextureManager::create_texture_from_file(
         vk::MemoryPropertyFlagBits::eDeviceLocal,
         address_mode};
 
-    texture.transition_layout(vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-    staging_buffer.copy_to_texture(texture, 0);
-    texture.transition_layout(
-        vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+    // texture.transition_layout(
+    //     vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+    // staging_buffer.copy_to_texture(texture, 0);
+    // texture.transition_layout(
+    //     vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 
     return _textures.emplace_back(filename, std::move(texture)).texture;
 }
 
-Texture& TextureManager::create_cube_texture_from_file(std::array<std::string, 6> filenames)
+Texture& TextureManager::create_cube_texture_from_file(
+    std::array<std::string, 6> filenames)
 {
     std::vector<Buffer> staging_buffers{};
     std::string combined_filenames;
@@ -82,8 +83,8 @@ Texture& TextureManager::create_cube_texture_from_file(std::array<std::string, 6
         const int bytes_per_pixel = 4;
         int channel_count = 0;
 
-        stbi_uc* pixels =
-            stbi_load(filenames[face].data(), &width, &height, &channel_count, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load(
+            filenames[face].data(), &width, &height, &channel_count, STBI_rgb_alpha);
         if (!pixels) {
             throw std::runtime_error("Failed to load texture image!");
         }
@@ -94,7 +95,8 @@ Texture& TextureManager::create_cube_texture_from_file(std::array<std::string, 6
             _device,
             image_size,
             vk::BufferUsageFlagBits::eTransferSrc,
-            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+            vk::MemoryPropertyFlagBits::eHostVisible |
+                vk::MemoryPropertyFlagBits::eHostCoherent);
 
         Buffer& staging_buffer = staging_buffers.back();
 
@@ -118,12 +120,13 @@ Texture& TextureManager::create_cube_texture_from_file(std::array<std::string, 6
         vk::MemoryPropertyFlagBits::eDeviceLocal,
         vk::SamplerAddressMode::eClampToEdge};
 
-    texture.transition_layout(vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+    // texture.transition_layout(
+    //     vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
     for (int face = 0; face < 6; face++) {
-        staging_buffers[face].copy_to_texture(texture, face);
+        // staging_buffers[face].copy_to_texture(texture, face);
     }
-    texture.transition_layout(
-        vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+    // texture.transition_layout(
+    //     vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 
     return _textures.emplace_back(combined_filenames, std::move(texture)).texture;
 }
