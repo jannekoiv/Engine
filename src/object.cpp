@@ -21,7 +21,8 @@ Object::Object(Object&& rhs)
       _descriptor_set{rhs._descriptor_set},
       _pipeline_layout{rhs._pipeline_layout},
       _pipeline{rhs._pipeline},
-      _world_matrix{rhs._world_matrix}
+      _world_matrix{rhs._world_matrix},
+      _wireframe{rhs._wireframe}
 {
     rhs._render_pass = nullptr;
     rhs._descriptor_pool = nullptr;
@@ -64,6 +65,23 @@ std::vector<vk::VertexInputAttributeDescription> MeshVertex::attribute_descripti
     desc.emplace_back(3, 0, vk::Format::eR32G32Sfloat, offsetof(MeshVertex, texcoord));
 
     return desc;
+}
+
+void Object::copy_vertices(const std::vector<MeshVertex>& vertices)
+{
+    vk::DeviceSize size = sizeof(vertices[0]) * vertices.size();
+
+    Buffer staging_buffer(
+        _context.device(),
+        size,
+        vk::BufferUsageFlagBits::eTransferSrc,
+        vk::MemoryPropertyFlagBits::eHostVisible |
+            vk::MemoryPropertyFlagBits::eHostCoherent);
+
+    void* data = staging_buffer.map_memory();
+    memcpy(data, vertices.data(), static_cast<size_t>(size));
+    staging_buffer.unmap_memory();
+    staging_buffer.copy(_context.command_pool(), _vertex_buffer);
 }
 
 static Buffer create_vertex_buffer(
@@ -295,10 +313,14 @@ static std::vector<vk::PipelineShaderStageCreateInfo> create_shader_stages(Devic
     return shader_stages;
 }
 
-static vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_info()
+static vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_info(bool wireframe)
 {
     vk::PipelineInputAssemblyStateCreateInfo info{};
-    info.topology = vk::PrimitiveTopology::eTriangleList;
+    if (wireframe) {
+        info.topology = vk::PrimitiveTopology::eLineList;
+    } else {
+        info.topology = vk::PrimitiveTopology::eTriangleList;
+    }
     info.primitiveRestartEnable = false;
     return info;
 }
@@ -346,14 +368,18 @@ static ViewportStateCreateInfo viewport_state_info(vk::Extent2D swap_chain_exten
     return info;
 }
 
-static vk::PipelineRasterizationStateCreateInfo rasterization_state_info()
+static vk::PipelineRasterizationStateCreateInfo rasterization_state_info(bool wireframe)
 {
     vk::PipelineRasterizationStateCreateInfo info{};
 
     info.polygonMode = vk::PolygonMode::eFill;
     info.lineWidth = 1.0f;
-    info.cullMode = vk::CullModeFlagBits::eBack;
+    info.cullMode = vk::CullModeFlagBits::eFront;
     info.frontFace = vk::FrontFace::eCounterClockwise;
+    if (wireframe) {
+        info.polygonMode = vk::PolygonMode::eLine;
+        info.cullMode = vk::CullModeFlagBits::eNone;
+    }
 
     return info;
 }
@@ -408,7 +434,8 @@ static vk::Pipeline create_pipeline(
     vk::VertexInputBindingDescription binding_description,
     std::vector<vk::VertexInputAttributeDescription> attribute_descriptions,
     vk::Extent2D swap_chain_extent,
-    vk::PipelineLayout pipeline_layout)
+    vk::PipelineLayout pipeline_layout,
+    bool wireframe)
 {
     vk::GraphicsPipelineCreateInfo pipeline_info{};
 
@@ -416,7 +443,7 @@ static vk::Pipeline create_pipeline(
     pipeline_info.stageCount = static_cast<uint32_t>(shader_stages.size());
     pipeline_info.pStages = shader_stages.data();
 
-    auto input_assembly_state = input_assembly_state_info();
+    auto input_assembly_state = input_assembly_state_info(wireframe);
     pipeline_info.pInputAssemblyState = &input_assembly_state;
 
     auto vertex_input_state =
@@ -426,7 +453,7 @@ static vk::Pipeline create_pipeline(
     auto viewport_state = viewport_state_info(swap_chain_extent);
     pipeline_info.pViewportState = &viewport_state.info;
 
-    auto rasterization_state = rasterization_state_info();
+    auto rasterization_state = rasterization_state_info(wireframe);
     pipeline_info.pRasterizationState = &rasterization_state;
 
     auto multisample_state = multi_sample_state_info();
@@ -628,7 +655,7 @@ Texture create_dummy_texture(Context& context, vk::SamplerAddressMode address_mo
     return create_texture_from_pixels(context, width, height, pixels, address_mode);
 }
 
-Object::Object(Context& context, const MeshGeometry& geometry)
+Object::Object(Context& context, const MeshGeometry& geometry, bool wireframe)
     : _context{context},
       _swap_chain{_context.swap_chain()},
       _render_pass{create_render_pass(_context.device(), _context.swap_chain().format())},
@@ -658,8 +685,10 @@ Object::Object(Context& context, const MeshGeometry& geometry)
           MeshVertex::binding_description(),
           MeshVertex::attribute_description(),
           context.swap_chain().extent(),
-          _pipeline_layout)},
-      _world_matrix{1.0f}
+          _pipeline_layout,
+          wireframe)},
+      _world_matrix{1.0f},
+      _wireframe{wireframe}
 {
     std::cout << "Object constructed\n";
 }
@@ -812,8 +841,12 @@ void Object::draw(Context& context, SceneUniform& uniform)
     command_buffer.bindDescriptorSets(
         vk::PipelineBindPoint::eGraphics, _pipeline_layout, 0, _descriptor_set, nullptr);
 
-    command_buffer.drawIndexed(
-        static_cast<uint32_t>(_index_buffer.size() / 4), 1, 0, 0, 0);
+    if (_wireframe) {
+        command_buffer.draw(_index_buffer.size() / 4, 1, 0, 0);
+    } else {
+        command_buffer.drawIndexed(
+            static_cast<uint32_t>(_index_buffer.size() / 4), 1, 0, 0, 0);
+    }
 
     command_buffer.endRenderPass();
 }
@@ -835,5 +868,5 @@ MeshGeometry create_geometry_from_file(std::string filename)
 
 Object create_object_from_file(Context& context, std::string filename)
 {
-    return Object{context, create_geometry_from_file(filename)};
+    return Object{context, create_geometry_from_file(filename), false};
 }

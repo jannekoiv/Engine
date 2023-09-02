@@ -33,12 +33,11 @@ class Object {
 public:
     Object(const Object&) = delete;
     Object(Object&& rhs);
+    Object(Context& context, const MeshGeometry& geometry, bool wireframe);
     ~Object();
 
     Object& operator=(const Object&) = delete;
     Object& operator=(Object&&) = delete;
-
-    Object(Context& context, const MeshGeometry& geometry);
 
     void draw(Context& context, SceneUniform& uniform);
 
@@ -51,6 +50,8 @@ public:
     {
         return _world_matrix;
     }
+
+    void copy_vertices(const std::vector<MeshVertex>& vertices);
 
 private:
     Context& _context;
@@ -75,8 +76,8 @@ private:
     vk::Pipeline _pipeline;
 
     glm::mat4 _world_matrix;
+    bool _wireframe;
 };
 
 MeshGeometry create_geometry_from_file(std::string filename);
 Object create_object_from_file(Context& context, std::string filename);
-
